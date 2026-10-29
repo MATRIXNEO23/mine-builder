@@ -297,10 +297,22 @@ public final class BancoIaScreen extends Screen {
               + "If too complex for a single response, return a coherent small section rather than claiming completion. "
               + "No markdown, no explanation."
             : message;
-        status = Text.literal("GPT sta rispondendo...");
+        status = Text.literal(build ? "Ricerca architettura e planimetrie..." : "GPT sta rispondendo...");
         CompletableFuture.supplyAsync(() -> {
             try {
-                return ChatGptInference.ask(token, model, request);
+                String enriched = request;
+                if (build) {
+                    String references;
+                    try {
+                        references = ArchitectureResearch.planningReferences(message);
+                    } catch (Exception e) {
+                        references = "Reference discovery unavailable. No verified measurements.";
+                    }
+                    enriched += " Planning references (metadata, not visually inspected): "
+                        + references + " Use only supported facts; do not invent measured dimensions. "
+                        + "Reason about structural layout before emitting the final JSON.";
+                }
+                return ChatGptInference.ask(token, model, enriched);
             } catch (Exception e) {
                 return "Errore GPT: " + e.getMessage();
             }
