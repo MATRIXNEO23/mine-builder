@@ -4,6 +4,8 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
+import net.minecraft.fluid.Fluids;
+import net.minecraft.util.math.Direction;
 import net.minecraft.registry.tag.BlockTags;
 import java.util.*;
 
@@ -46,6 +48,26 @@ public final class BuildExecutor {
                 var world = server.getWorld(dimension);
                 if (world == null || server != ownerServer) return;
                 if (!preflightDone) {
+                    // Prevent uncontained fluids from flowing into the surrounding world.
+                    Map<BlockPos, BlockState> planned = new HashMap<>();
+                    for (var candidate : pending) planned.put(candidate.pos(), candidate.state());
+                    for (var candidate : pending) {
+                        if (candidate.state().getFluidState().isEmpty()) continue;
+                        for (Direction side : new Direction[]{Direction.DOWN, Direction.NORTH,
+                                Direction.SOUTH, Direction.EAST, Direction.WEST}) {
+                            BlockPos neighbor = candidate.pos().offset(side);
+                            BlockState boundary = planned.get(neighbor);
+                            if (boundary == null) {
+                                if (!world.isChunkLoaded(neighbor)) return;
+                                boundary = world.getBlockState(neighbor);
+                            }
+                            if (boundary.isAir() || boundary.isIn(BlockTags.REPLACEABLE)) {
+                                lastError = "Liquido non contenuto vicino a " + neighbor.toShortString();
+                                cancel();
+                                return;
+                            }
+                        }
+                    }
                     for (var candidate : pending) {
                         BlockPos target = candidate.pos();
                         if (!world.isInBuildLimit(target)) {
