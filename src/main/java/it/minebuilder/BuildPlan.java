@@ -82,6 +82,44 @@ public final class BuildPlan {
             : "Avvisi architettonici: " + String.join("; ", warnings) + ".";
     }
 
+    /** Stable 16x16 horizontal sections, ordered for reproducible staged builds. */
+    public List<BuildPlan> sections() {
+        Map<Long, List<Placement>> groups = new TreeMap<>();
+        for (Placement placement : placements) {
+            long x = Math.floorDiv(placement.pos().getX(), 16);
+            long z = Math.floorDiv(placement.pos().getZ(), 16);
+            long key = ((x & 0xffffffffL) << 32) | (z & 0xffffffffL);
+            groups.computeIfAbsent(key, ignored -> new ArrayList<>()).add(placement);
+        }
+        List<BuildPlan> result = new ArrayList<>();
+        for (List<Placement> group : groups.values()) result.add(fromPlacements(group));
+        return List.copyOf(result);
+    }
+
+    /** Deterministic equality of coordinates and complete block states, regardless of order. */
+    public boolean matchesExactly(BuildPlan other) {
+        if (other == null) return false;
+        Map<BlockPos, BlockState> expected = new HashMap<>();
+        for (Placement p : placements) {
+            BlockState previous = expected.putIfAbsent(p.pos(), p.state());
+            if (previous != null && !previous.equals(p.state())) return false;
+        }
+        Map<BlockPos, BlockState> actual = new HashMap<>();
+        for (Placement p : other.placements) {
+            BlockState previous = actual.putIfAbsent(p.pos(), p.state());
+            if (previous != null && !previous.equals(p.state())) return false;
+        }
+        return expected.equals(actual);
+    }
+
+    /** Round-trip check: every section must reconstruct exactly the original blueprint. */
+    public void validateSections() {
+        List<Placement> reconstructed = new ArrayList<>(placements.size());
+        for (BuildPlan section : sections()) reconstructed.addAll(section.placements());
+        if (!matchesExactly(fromPlacements(reconstructed)))
+            throw new IllegalStateException("Section reconstruction differs from approved blueprint");
+    }
+
     /** Parametric house: GPT chooses dimensions/materials, Java builds coherent geometry. */
     public static BuildPlan house(String json, BlockPos origin) {
         JsonObject root = JsonParser.parseString(json).getAsJsonObject();
