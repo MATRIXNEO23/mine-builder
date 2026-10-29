@@ -52,3 +52,9 @@ Zero costi aggiuntivi; niente API key a consumo o fallback a pagamento. Non inse
 
 ## Decisione utente: installazione in un solo JAR
 Il collegamento di rete deve essere interno alla mod, senza programma ponte separato. Commit codice: 1951a1c. Autenticazione GPT e inferenza reale ancora da implementare e verificare.
+
+## Verifica ufficiale accesso GPT — 29 ottobre 2026
+- Documentazione OpenAI ufficiale verificata per Sign in with ChatGPT in app open-source locali; uso del piano idoneo con consenso e scope dedicato, senza API key. Dettagli e sequenza in docs/GPT_INTEGRATION_GATE.md (commit 1d1e00a).
+- Non è ancora stato implementato o testato OAuth nel JAR, né una risposta GPT reale. Non considerare risolto il gate.
+- L'utente ha confermato test reale in Minecraft: Banco IA presente tramite comando give, clic destro apre la GUI. Aspetto e inventario sono in sviluppo.
+- Prossima azione: implementare nel JAR flusso OAuth documentato con PKCE, verifica token/scope e test inferenza; quindi piano strutturato e costruzione sicura.
