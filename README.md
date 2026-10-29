@@ -15,6 +15,15 @@ Un **Banco IA** posizionabile nel mondo Minecraft. Con clic destro apre una sche
 - Nessun server Minecraft necessario. GitHub serve per il codice della mod; GitHub Actions potrà eventualmente eseguire calcoli deterministici su runner gratuiti, ma non sostituisce l'agente GPT. La mod inserirà automaticamente i blocchi nel mondo locale.
 - Mod ottimizzata per HP Pavilion i3-2100: applicazione di blocchi a lotti, senza eseguire il modello AI sul PC.
 
+
+## Modalità di costruzione
+
+**Ricostruzione reale:** per richieste come «Riproduci San Siro» o «Ricrea San Vendemiano», usare dati e riferimenti verificabili e mantenere la scala 1:1 per quanto possibile. Distinguere dettagli documentati da quelli ricostruiti per ipotesi.
+
+**Creazione originale:** per richieste come «Inventami un castello gotico», GPT definisce liberamente concept, pianta, volumi e stile, anche senza un edificio reale da copiare. Esempi: torri, guglie, archi a sesto acuto, contrafforti, vetrate, ponti e cortili. Il progetto strutturato viene verificato per collisioni, stabilità geometrica e limiti del mondo; gli algoritmi deterministici convertono poi le forme in blocchi di Minecraft. Per edifici inventati, 1 blocco ≈ 1 metro resta la convenzione dimensionale, ma misure e dimensioni sono decise dall'utente o proposte dall'agente, non vincolate a un originale reale.
+
+In entrambe le modalità l'esecutore costruisce automaticamente a sezioni, con salvataggio locale, possibilità di pausa, modifica conversazionale e ripresa dopo interruzioni. Sono requisiti **da implementare e testare**, non funzionalità già operative.
+
 ## Architettura proposta
 1. **Blocco Banco IA + GUI Fabric:** campo per prompt, storico della conversazione, progetti, stato, pausa, riprendi, annulla.
 2. **Bridge locale leggero:** connessione sicura tra mod e agente, con timeout, errori espliciti, token custoditi fuori da GitHub/log e consenso utente per accesso al piano.
