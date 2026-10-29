@@ -179,6 +179,7 @@ public final class BuildExecutor {
     }
 
     public static String lastError() { return lastError; }
+    public static boolean preflightPassed() { return preflightDone; }
     public static int remaining() { return pending.size(); }
     public static void cancel() { pending.clear(); ownerServer = null; preflightDone = false; }
 }
