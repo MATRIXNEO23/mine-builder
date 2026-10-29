@@ -10,7 +10,9 @@ public final class BuildExecutor {
     private static Queue<BuildPlan.Placement> pending = new ArrayDeque<>();
     private static String worldKey = "";
     private static net.minecraft.server.MinecraftServer ownerServer;
-    private static boolean inFlight;
+    private static volatile boolean inFlight;
+    private static volatile boolean preflightDone;
+    private static volatile String lastError = "";
     private BuildExecutor() {}
 
     public static void start(MinecraftClient client, BuildPlan plan) {
@@ -20,6 +22,8 @@ public final class BuildExecutor {
         if (inFlight || !pending.isEmpty())
             throw new IllegalStateException("A build is already running; finish or cancel it first");
         pending = new ArrayDeque<>(plan.placements());
+        preflightDone = false;
+        lastError = "";
         ownerServer = client.getServer();
         worldKey = key;
     }
@@ -38,6 +42,24 @@ public final class BuildExecutor {
             try {
                 var world = server.getWorld(dimension);
                 if (world == null || server != ownerServer) return;
+                if (!preflightDone) {
+                    for (var candidate : pending) {
+                        BlockPos target = candidate.pos();
+                        if (!world.isInBuildLimit(target)) {
+                            lastError = "Progetto fuori dai limiti del mondo";
+                            cancel();
+                            return;
+                        }
+                        if (!world.isChunkLoaded(target)) return;
+                        var existing = world.getBlockState(target);
+                        if (!existing.isAir() && !existing.equals(candidate.state())) {
+                            lastError = "Area occupata: " + target.toShortString();
+                            cancel();
+                            return;
+                        }
+                    }
+                    preflightDone = true;
+                }
                 int processed = 0;
                 while (processed < PER_BATCH && !pending.isEmpty()) {
                     var entry = pending.peek();
@@ -59,6 +81,7 @@ public final class BuildExecutor {
         });
     }
 
+    public static String lastError() { return lastError; }
     public static int remaining() { return pending.size(); }
-    public static void cancel() { pending.clear(); ownerServer = null; }
+    public static void cancel() { pending.clear(); ownerServer = null; preflightDone = false; }
 }
