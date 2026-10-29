@@ -27,8 +27,8 @@ public final class MineBuilder implements ModInitializer {
     public static final Block BANCO_IA = new Block(FabricBlockSettings.create().strength(2.5f)) {
         @Override
         public ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit) {
-            if (!world.isClient) {
-                player.sendMessage(Text.literal("Banco IA: GPT non ancora collegato."), false);
+            if (world.isClient) {
+                return ActionResult.SUCCESS;
             }
             return ActionResult.SUCCESS;
         }
