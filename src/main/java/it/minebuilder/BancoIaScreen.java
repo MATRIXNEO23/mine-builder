@@ -114,6 +114,7 @@ public final class BancoIaScreen extends Screen {
             .dimensions(left, height - 26, panel, 20).build());
         refreshBlueprints();
         if (prompt != null && !savedTab) setInitialFocus(prompt);
+        recoverProgressive();
         autoRecoverJournal();
     }
 
@@ -225,9 +226,28 @@ public final class BancoIaScreen extends Screen {
         }
     }
 
+    private void recoverProgressive() {
+        if (client == null || client.getServer() == null || client.world == null) return;
+        try {
+            Path root = client.getServer().getSavePath(net.minecraft.util.WorldSavePath.ROOT)
+                .resolve("minebuilder/generation-journal");
+            if (!java.nio.file.Files.isDirectory(root)) return;
+            try (var jobs = java.nio.file.Files.list(root)) {
+                for (Path directory : jobs.filter(java.nio.file.Files::isDirectory).toList()) {
+                    if (java.nio.file.Files.isRegularFile(directory.resolve("approved.txt"))) {
+                        ProgressiveBuild.recover(client, directory);
+                        return;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            status = Text.literal("Recupero progressivo: " + e.getMessage());
+        }
+    }
+
     private void autoRecoverJournal() {
         if (client == null || client.getServer() == null || accessToken == null
-            || selectedModel == null || journalRecoveryRunning) return;
+            || selectedModel == null || journalRecoveryRunning || ProgressiveBuild.active()) return;
         String world = client.getServer().getSavePath(net.minecraft.util.WorldSavePath.ROOT)
             .toAbsolutePath().normalize().toString();
         if (world.equals(autoRecoveredWorld)) return;
