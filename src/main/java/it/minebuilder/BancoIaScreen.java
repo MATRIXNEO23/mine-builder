@@ -711,7 +711,18 @@ public final class BancoIaScreen extends Screen {
                             pendingPlan = BuildPlan.fromPlacements(combined);
                         } else pendingPlan = BuildPlan.parse(json, origin);
                         if (streamingConfirmed) {
-                            status = Text.literal("GPT completato; costruzione progressiva attiva.");
+                            if (streamingJob != null) {
+                                try {
+                                    String savedName = "gpt-" + streamingJob.getFileName().toString();
+                                    BlueprintLibrary.save(client, savedName, pendingPlan);
+                                    selectedBlueprint = savedName;
+                                } catch (Exception e) {
+                                    status = Text.literal("Costruzione attiva; salvataggio: " + e.getMessage());
+                                    return;
+                                }
+                            }
+                            lastPlan = pendingPlan;
+                            status = Text.literal("Progetto salvato; costruzione progressiva attiva.");
                             return;
                         }
                         pendingPlan.validateSections();
