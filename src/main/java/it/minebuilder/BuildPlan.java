@@ -235,10 +235,20 @@ public final class BuildPlan {
                         }
             } else throw new IllegalArgumentException("Unknown shape: " + type);
         }
+        // Explicit detailing overrides generated geometry; duplicate explicit conflicts remain errors.
+        Set<BlockPos> explicit = new HashSet<>();
         for (JsonElement element : blocks) {
             JsonObject b = element.getAsJsonObject();
-            addCell(cells, origin, b.get("x").getAsInt(), b.get("y").getAsInt(),
-                b.get("z").getAsInt(), blueprintBlock(b.get("block").getAsString()));
+            int x = b.get("x").getAsInt(), y = b.get("y").getAsInt(), z = b.get("z").getAsInt();
+            if (Math.abs((long)x) > 128 || y < -32 || y > 128 || Math.abs((long)z) > 128)
+                throw new IllegalArgumentException("Blueprint exceeds safe bounds at " + x + "," + y + "," + z);
+            BlockPos pos = origin.add(x, y, z);
+            BlockState state = blueprintBlock(b.get("block").getAsString());
+            if (!explicit.add(pos) && !cells.get(pos).equals(state))
+                throw new IllegalArgumentException("Conflicting explicit blocks at " + pos.toShortString());
+            cells.put(pos, state);
+            if (cells.size() > 20000)
+                throw new IllegalArgumentException("Blueprint exceeds 20000 blocks");
         }
         if (cells.isEmpty()) throw new IllegalArgumentException("Empty blueprint");
         return fromPlacements(cells.entrySet().stream()
