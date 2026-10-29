@@ -230,7 +230,7 @@ public final class BancoIaScreen extends Screen {
         String request = build
             ? "Design the requested Minecraft object faithfully: " + message
               + ". You are a universal block architect, NOT a house generator. "
-              + "Return ONLY JSON {\\\"blocks\\\":[{\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0,\\\"block\\\":\\\"minecraft:stone\\\"}]}. "
+              + "Return ONLY JSON {\"blocks\":[{\"x\":0,\"y\":0,\"z\":0,\"block\":\"minecraft:stone\"}]}. "
               + "Each block has integer coordinates relative to origin and a valid Minecraft 1.20.1 vanilla block ID. "
               + "Include every explicitly requested feature and choose geometry appropriate to the subject. "
               + "For trees include trunk branches and leaves; for pools include water and basin; for buildings include openings and interiors. "
