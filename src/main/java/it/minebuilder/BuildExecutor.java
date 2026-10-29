@@ -175,7 +175,7 @@ public final class BuildExecutor {
                         world.getChunkManager().save(true, false);
                         saveProgress(client, worldKey, completedSections + 1);
                         completedSections++;
-                    catch (IOException e) {
+                    } catch (IOException e) {
                         lastError = "Salvataggio avanzamento fallito: " + e.getMessage();
                         cancel();
                     }
