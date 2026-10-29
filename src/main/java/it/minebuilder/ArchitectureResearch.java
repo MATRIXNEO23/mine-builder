@@ -15,6 +15,42 @@ public final class ArchitectureResearch {
         .connectTimeout(Duration.ofSeconds(10)).build();
     private ArchitectureResearch() {}
 
+    /** Reference discovery for the planning stage. Metadata only: never claim visual analysis. */
+    public static String planningReferences(String request) throws Exception {
+        if (request == null || request.isBlank()) return "No reference query.";
+        String clean = request.replaceAll("[\\r\\n\\t]", " ").trim();
+        if (clean.length() > 120) clean = clean.substring(0, 120);
+        StringBuilder out = new StringBuilder("Public reference leads (titles and links, NOT inspected drawings):\\n");
+        int total = 0;
+        for (String suffix : new String[]{" architecture exterior", " floor plan architectural drawing"}) {
+            String query = URLEncoder.encode(clean + suffix, StandardCharsets.UTF_8);
+            String url = "https://commons.wikimedia.org/w/api.php?action=query&generator=search"
+                + "&gsrsearch=" + query + "&gsrnamespace=6&gsrlimit=4&prop=imageinfo"
+                + "&iiprop=url&format=json";
+            HttpRequest httpRequest = HttpRequest.newBuilder(URI.create(url))
+                .timeout(Duration.ofSeconds(15))
+                .header("User-Agent", "MineBuilder/0.2 (local architecture research)").GET().build();
+            HttpResponse<String> response = HTTP.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200 || response.body().length() > 1024 * 1024)
+                throw new IOException("Wikimedia reference search unavailable: HTTP " + response.statusCode());
+            JsonObject root = JsonParser.parseString(response.body()).getAsJsonObject();
+            if (!root.has("query") || !root.getAsJsonObject("query").has("pages")) continue;
+            for (Map.Entry<String, JsonElement> entry :
+                    root.getAsJsonObject("query").getAsJsonObject("pages").entrySet()) {
+                JsonObject page = entry.getValue().getAsJsonObject();
+                if (!page.has("title")) continue;
+                String title = page.get("title").getAsString();
+                String pageUrl = "https://commons.wikimedia.org/wiki/"
+                    + URLEncoder.encode(title.replace(' ', '_'), StandardCharsets.UTF_8);
+                out.append(suffix.trim()).append(": ").append(title)
+                    .append(" | ").append(pageUrl).append('\\n');
+                total++;
+            }
+        }
+        if (total == 0) return "No verified public architectural references found.";
+        return out.append("Do not invent measurements or claim images were visually inspected.").toString();
+    }
+
     public static String search(String name) throws Exception {
         if (name == null || name.isBlank() || name.length() > 120)
             throw new IllegalArgumentException("Invalid building name");
