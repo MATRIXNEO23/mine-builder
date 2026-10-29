@@ -20,6 +20,29 @@ public final class BuildPlan {
     }
     private BuildPlan(List<Placement> placements) { this.placements = List.copyOf(placements); }
     public List<Placement> placements() { return placements; }
+    /** Deterministic post-generation report; never claims architectural correctness. */
+    public String geometryReport() {
+        if (placements.isEmpty()) return "Empty blueprint";
+        int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
+        int solids = 0, air = 0;
+        Set<BlockPos> positions = new HashSet<>();
+        int duplicates = 0;
+        for (Placement placement : placements) {
+            BlockPos p = placement.pos();
+            minX = Math.min(minX, p.getX()); maxX = Math.max(maxX, p.getX());
+            minY = Math.min(minY, p.getY()); maxY = Math.max(maxY, p.getY());
+            minZ = Math.min(minZ, p.getZ()); maxZ = Math.max(maxZ, p.getZ());
+            if (placement.state().isAir()) air++; else solids++;
+            if (!positions.add(p)) duplicates++;
+        }
+        return "Ingombro " + (maxX - minX + 1) + "x" + (maxY - minY + 1)
+            + "x" + (maxZ - minZ + 1) + " blocchi (X/Y/Z); "
+            + solids + " solidi, " + air + " aria, "
+            + duplicates + " posizioni duplicate. "
+            + "Verifica visiva e percorribilita ancora necessarie.";
+    }
+
 
     /** Parametric house: GPT chooses dimensions/materials, Java builds coherent geometry. */
     public static BuildPlan house(String json, BlockPos origin) {
