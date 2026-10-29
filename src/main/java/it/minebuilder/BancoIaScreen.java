@@ -451,6 +451,7 @@ public final class BancoIaScreen extends Screen {
         }
         BlockPos origin = build ? client.player.getBlockPos().add(4, 0, 4) : null;
         pendingPlan = null;
+        final boolean useReferences = !originalDesign;
         String request = build
             ? "Design the requested Minecraft object faithfully: " + message
               + ". You are a universal block architect, NOT a house generator. "
@@ -470,15 +471,15 @@ public final class BancoIaScreen extends Screen {
               + "If too complex for a single response, return a coherent small section rather than claiming completion. "
               + "No markdown, no explanation."
             : message;
-        status = Text.literal(build ? "Ricerca architettura e planimetrie..." : "GPT sta rispondendo...");
+        status = Text.literal(build ? (useReferences ? "Ricerca architettura e planimetrie..." : "Progettazione originale senza ricerca esterna...") : "GPT sta rispondendo...");
         generatorRunning = build;
         generatorPages = 0;
         generatorBlocks = 0;
-        generatorStage = build ? "Ricerca riferimenti architettonici" : "Chat";
+        generatorStage = build ? (useReferences ? "Modalita riferimenti: ricerca fonti" : "Modalita originale: progetto creativo") : "Chat";
         CompletableFuture.supplyAsync(() -> {
             try {
                 String enriched = request;
-                if (build && !originalDesign) {
+                if (build && useReferences) {
                     String references;
                     try {
                         references = ArchitectureResearch.planningReferences(message);
@@ -604,7 +605,7 @@ public final class BancoIaScreen extends Screen {
                             if (first >= 0 && last > first) json = json.substring(first + 1, last).trim();
                         }
                         // Accept a JSON object wrapped in explanatory text, without executing commands.
-                        if (!json.startsWith("{")) {
+                        if (!json.startsWith("{") && !json.startsWith("PAGED:")) {
                             int start = json.indexOf('{');
                             int end = json.lastIndexOf('}');
                             if (start >= 0 && end > start) json = json.substring(start, end + 1);
