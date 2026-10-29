@@ -17,6 +17,11 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test OAuth inference gate (mock, no credentials)
+        run: node --test scripts/verify-plan-sharing.test.mjs
       - name: Compile mod
         run: gradle --no-daemon build
       - uses: actions/upload-artifact@v4
