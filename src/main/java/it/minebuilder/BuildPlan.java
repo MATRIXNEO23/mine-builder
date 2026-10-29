@@ -416,9 +416,11 @@ public final class BuildPlan {
         if (Math.abs(x) > 128 || y < -32 || y > 128 || Math.abs(z) > 128)
             throw new IllegalArgumentException("Blueprint exceeds safe bounds");
         BlockPos pos = origin.add(x, y, z);
-        BlockState previous = cells.putIfAbsent(pos, state);
-        if (previous != null && !previous.equals(state))
-            throw new IllegalArgumentException("Conflicting geometry at " + pos.toShortString());
+        // Ordered geometry layers: cuboids, then shapes, then explicit blocks.
+        // Later layers deliberately override earlier material at the same cell,
+        // allowing windows, doors, arches and air openings to carve solid volumes.
+        // A repeated coordinate is not an invalid blueprint by itself.
+        cells.put(pos, state);
         if (cells.size() > 20000)
             throw new IllegalArgumentException("Blueprint exceeds 20000 blocks");
     }
