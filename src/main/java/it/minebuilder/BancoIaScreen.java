@@ -232,7 +232,8 @@ public final class BancoIaScreen extends Screen {
             ? "Design the requested Minecraft object faithfully: " + message
               + ". You are a universal block architect, NOT a house generator. "
               + "Return ONLY JSON {\"blocks\":[{\"x\":0,\"y\":0,\"z\":0,\"block\":\"minecraft:stone\"}]}. "
-              + "Each block has integer coordinates relative to origin and a valid Minecraft 1.20.1 vanilla block ID. "
+              + "You may return arrays blocks, cuboids, shapes. A block is {x,y,z,block}; a cuboid is {x,y,z,w,h,d,block}; a shape is a line {type:line,x,y,z,x2,y2,z2,block} or sphere/ellipsoid/cylinder {type:sphere,x,y,z,rx,ry,rz,block,hollow:false}. "
+              + "Use compact primitives for volumes, branches, canopies, curves and details; do not overlap primitives. All coordinates relative to origin and valid Minecraft 1.20.1 block IDs. "
               + "Include every explicitly requested feature and choose geometry appropriate to the subject. "
               + "For trees include trunk branches and leaves; for pools include water and basin; for buildings include openings and interiors. "
               + "Do not substitute a house for another requested object. "
