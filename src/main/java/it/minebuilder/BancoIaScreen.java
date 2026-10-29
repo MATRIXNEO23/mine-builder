@@ -394,6 +394,8 @@ public final class BancoIaScreen extends Screen {
                 java.nio.file.Files.writeString(jobDir.resolve("design.txt"),
                     enriched.substring(0, Math.min(enriched.length(), 12000)));
                 java.util.List<String> pages = new java.util.ArrayList<>();
+                java.util.List<BuildPlan.Placement> validated = new java.util.ArrayList<>();
+                java.util.Map<BlockPos, net.minecraft.block.BlockState> occupied = new java.util.HashMap<>();
                 String previous = "";
                 for (int page = 0; page < 100; page++) {
                     String instruction = enriched + " This is generation page " + (page + 1)
@@ -419,6 +421,15 @@ public final class BancoIaScreen extends Screen {
                     } finally {
                         java.nio.file.Files.deleteIfExists(tmpPage);
                     }
+                    BuildPlan parsedPage = BuildPlan.parse(answer, origin);
+                    for (var placement : parsedPage.placements()) {
+                        var existing = occupied.putIfAbsent(placement.pos(), placement.state());
+                        if (existing != null && !existing.equals(placement.state()))
+                            throw new IllegalStateException("Conflitto geometrico tra pagine: " + placement.pos());
+                        if (existing == null) validated.add(placement);
+                    }
+                    if (validated.size() > 2_000_000)
+                        throw new IllegalStateException("Limite di sicurezza del progetto superato");
                     pages.add(answer);
                     if (object.get("complete").getAsBoolean()) return "PAGED:" + String.join("##PAGE##", pages);
                     previous += " Page " + (page + 1) + ": " + answer.substring(0, Math.min(350, answer.length()));
