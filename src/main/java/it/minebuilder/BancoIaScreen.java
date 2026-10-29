@@ -11,6 +11,7 @@ import it.minebuilder.auth.LoopbackRedirect;
 import it.minebuilder.auth.ChatGptAuthorization;
 import it.minebuilder.auth.ChatGptHost;
 import it.minebuilder.auth.ChatGptTokenExchange;
+import it.minebuilder.auth.ChatGptInference;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
@@ -19,6 +20,8 @@ import java.util.concurrent.CompletableFuture;
 public final class BancoIaScreen extends Screen {
     private TextFieldWidget prompt;
     private static LoopbackRedirect pendingLogin;
+    private static volatile String accessToken;
+    private static volatile String selectedModel;
     private Text status = Text.literal("ChatGPT non collegato.");
 
     public BancoIaScreen() {
@@ -33,6 +36,8 @@ public final class BancoIaScreen extends Screen {
         prompt.setPlaceholder(Text.literal("Descrivi cosa vuoi costruire..."));
         addDrawableChild(prompt);
         addDrawableChild(ButtonWidget.builder(Text.literal("Accedi con ChatGPT"), button -> startLogin()).dimensions(left, height / 2 + 18, 145, 20).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal("Invia a GPT"), button -> sendMessage())
+            .dimensions(left, height / 2 + 43, 145, 20).build());
         addDrawableChild(ButtonWidget.builder(Text.literal("Chiudi"), button -> close())
             .dimensions(left + 155, height / 2 + 18, 145, 20).build());
         setInitialFocus(prompt);
@@ -65,8 +70,12 @@ public final class BancoIaScreen extends Screen {
                 String redirectUri = receiver.redirectUri();
                 CompletableFuture.supplyAsync(() -> {
                     try {
-                        ChatGptTokenExchange.exchange(callback, attempt, redirectUri);
-                        return "Permessi ricevuti; verifica identita ancora necessaria.";
+                        var tokens = ChatGptTokenExchange.exchange(callback, attempt, redirectUri);
+                        String token = tokens.get("access_token").getAsString();
+                        String model = ChatGptInference.firstModel(token);
+                        accessToken = token;
+                        selectedModel = model;
+                        return "Modello disponibile: " + model;
                     } catch (Exception e) {
                         return "Scambio OAuth non riuscito o permessi insufficienti.";
                     }
@@ -83,6 +92,27 @@ public final class BancoIaScreen extends Screen {
         } catch (Exception e) {
             status = Text.literal("Impossibile avviare l'accesso: controlla il log.");
         }
+    }
+
+    private void sendMessage() {
+        String token = accessToken;
+        String model = selectedModel;
+        if (token == null || model == null) {
+            status = Text.literal("Accedi prima con ChatGPT.");
+            return;
+        }
+        String message = prompt.getText().trim();
+        if (message.isEmpty()) return;
+        status = Text.literal("GPT sta rispondendo...");
+        CompletableFuture.supplyAsync(() -> {
+            try {
+                return ChatGptInference.ask(token, model, message);
+            } catch (Exception e) {
+                return "Errore GPT: " + e.getMessage();
+            }
+        }).thenAccept(reply -> {
+            if (client != null) client.execute(() -> status = Text.literal(reply));
+        });
     }
 
     @Override
