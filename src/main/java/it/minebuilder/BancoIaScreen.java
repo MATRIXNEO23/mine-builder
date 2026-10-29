@@ -337,8 +337,9 @@ public final class BancoIaScreen extends Screen {
                         + ". Return JSON geometry and mandatory boolean complete.";
                     String answer = "";
                     BuildPlan parsedPage = null;
+                    String conflictFeedback = "";
                     for (int attempt = 0; attempt < 4; attempt++) {
-                        String adjusted = instruction + (attempt == 0 ? "" :
+                        String adjusted = instruction + conflictFeedback + (attempt == 0 ? "" :
                             " RETRY: previous page was rejected as too large or invalid. "
                             + "Produce at most 5000 DISTINCT block positions, including expanded "
                             + "cuboids and shapes. Reduce dimensions or split the work across "
@@ -350,6 +351,22 @@ public final class BancoIaScreen extends Screen {
                         }
                         try {
                             parsedPage = BuildPlan.parse(answer, origin);
+                            java.util.List<String> conflicts = new java.util.ArrayList<>();
+                            for (var placement : parsedPage.placements()) {
+                                var prior = occupied.get(placement.pos());
+                                if (prior != null && !prior.equals(placement.state())
+                                    && conflicts.size() < 16)
+                                    conflicts.add(placement.pos().toShortString());
+                            }
+                            if (!conflicts.isEmpty()) {
+                                conflictFeedback = " CONFLICT WITH SAVED PAGES at world coordinates "
+                                    + String.join("; ", conflicts)
+                                    + ". Preserve previous pages. Generate ONLY unoccupied geometry.";
+                                if (attempt == 3) throw new IllegalArgumentException(
+                                    "Conflitti tra pagine dopo 4 tentativi: " + String.join("; ", conflicts));
+                                generatorStage = "Correzione conflitti pagina " + (page + 1);
+                                continue;
+                            }
                             break;
                         } catch (IllegalArgumentException ex) {
                             if (attempt == 3) throw ex;
