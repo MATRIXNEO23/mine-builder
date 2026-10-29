@@ -60,6 +60,12 @@ public final class ChatGptInference {
     }
 
     public static String ask(String token, String model, String message) throws Exception {
+        return askWithImage(token, model, message, null, null);
+    }
+
+    /** Optional image input; selected model must support vision. */
+    public static String askWithImage(String token, String model, String message,
+                                      byte[] imageBytes, String mime) throws Exception {
         JsonObject body = new JsonObject();
         body.addProperty("model", model);
         JsonArray input = new JsonArray();
@@ -70,6 +76,17 @@ public final class ChatGptInference {
         textPart.addProperty("type", "input_text");
         textPart.addProperty("text", message);
         content.add(textPart);
+        if (imageBytes != null) {
+            if (imageBytes.length == 0 || imageBytes.length > 4 * 1024 * 1024)
+                throw new IOException("Image must be at most 4 MiB");
+            if (!"image/png".equals(mime) && !"image/jpeg".equals(mime))
+                throw new IOException("Only PNG and JPEG images supported");
+            JsonObject imagePart = new JsonObject();
+            imagePart.addProperty("type", "input_image");
+            imagePart.addProperty("image_url", "data:" + mime + ";base64,"
+                + java.util.Base64.getEncoder().encodeToString(imageBytes));
+            content.add(imagePart);
+        }
         userMessage.add("content", content);
         input.add(userMessage);
         body.add("input", input);
