@@ -2,6 +2,8 @@ package it.minebuilder;
 
 import com.google.gson.*;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.LeavesBlock;
+import net.minecraft.state.property.Properties;
 import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
@@ -247,7 +249,10 @@ public final class BuildPlan {
         Identifier id = Identifier.tryParse(name);
         if (id == null || !Registries.BLOCK.containsId(id))
             throw new IllegalArgumentException("Invalid block ID: " + name);
-        return Registries.BLOCK.get(id).getDefaultState();
+        BlockState state = Registries.BLOCK.get(id).getDefaultState();
+        if (state.getBlock() instanceof LeavesBlock && state.contains(Properties.PERSISTENT))
+            state = state.with(Properties.PERSISTENT, true);
+        return state;
     }
 
     private static void addCell(Map<BlockPos, BlockState> cells, BlockPos origin,
