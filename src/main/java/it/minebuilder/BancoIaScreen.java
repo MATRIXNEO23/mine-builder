@@ -25,6 +25,7 @@ public final class BancoIaScreen extends Screen {
     private static volatile String selectedModel;
     private Text status = Text.literal("ChatGPT non collegato.");
     private String lastReply = "";
+    private static BuildPlan placementPlan;
     private BuildPlan pendingPlan;
     private BuildPlan lastPlan;
     private String selectedBlueprint;
@@ -147,11 +148,20 @@ public final class BancoIaScreen extends Screen {
     private void confirmBuild() {
         if (pendingPlan == null || client == null) { status = Text.literal("Prima genera un progetto."); return; }
         try {
-            BuildExecutor.start(client, pendingPlan);
-            status = Text.literal("Costruzione avviata.");
+            placementPlan = pendingPlan;
             pendingPlan = null;
+            status = Text.literal("Posizionamento attivo: usa il martello sul blocco desiderato.");
+            close();
         } catch (Exception e) { status = Text.literal("Errore: " + e.getMessage()); }
     }
+
+    public static BuildPlan takePlacementPlan() {
+        BuildPlan result = placementPlan;
+        placementPlan = null;
+        return result;
+    }
+
+    public static boolean hasPlacementPlan() { return placementPlan != null; }
 
     private void sendMessage() {
         String token = accessToken;
