@@ -42,7 +42,7 @@ public final class BlueprintLibrary {
             b.addProperty("x", placement.pos().getX() - origin.getX());
             b.addProperty("y", placement.pos().getY() - origin.getY());
             b.addProperty("z", placement.pos().getZ() - origin.getZ());
-            b.addProperty("block", Registries.BLOCK.getId(placement.state().getBlock()).toString());
+            b.addProperty("block", blockStateName(placement.state()));
             blocks.add(b);
         }
         root.add("blocks", blocks);
@@ -76,15 +76,60 @@ public final class BlueprintLibrary {
                 int x = b.get("x").getAsInt(), y = b.get("y").getAsInt(), z = b.get("z").getAsInt();
                 if (Math.abs(x) > 2000 || Math.abs(y) > 2000 || Math.abs(z) > 2000)
                     throw new IOException("Blueprint coordinates out of range");
-                Identifier id = Identifier.tryParse(b.get("block").getAsString());
-                if (id == null || !Registries.BLOCK.containsId(id))
-                    throw new IOException("Unknown block");
                 BlockPos pos = origin.add(x, y, z);
                 if (!seen.add(pos)) throw new IOException("Duplicate block");
-                placements.add(new BuildPlan.Placement(pos, Registries.BLOCK.get(id).getDefaultState()));
+                placements.add(new BuildPlan.Placement(pos, parseSavedState(b)));
             }
             return BuildPlan.fromPlacements(placements);
         } catch (RuntimeException e) { throw new IOException("Invalid blueprint", e); }
+    }
+
+    private static String blockStateName(net.minecraft.block.BlockState state) {
+        StringBuilder result = new StringBuilder(Registries.BLOCK.getId(state.getBlock()).toString());
+        if (!state.getEntries().isEmpty()) {
+            result.append('[');
+            boolean first = true;
+            for (var entry : state.getEntries().entrySet()) {
+                if (!first) result.append(',');
+                first = false;
+                result.append(entry.getKey().getName()).append('=').append(propertyValue(entry.getKey(), entry.getValue()));
+            }
+            result.append(']');
+        }
+        return result.toString();
+    }
+
+    private static <T extends Comparable<T>> String propertyValue(
+            net.minecraft.state.property.Property<T> property, Comparable<?> value) {
+        return property.name((T) value);
+    }
+
+    private static net.minecraft.block.BlockState parseSavedState(JsonObject block) throws IOException {
+        String name = block.get("block").getAsString();
+        String idPart = name.contains("[") ? name.substring(0, name.indexOf('[')) : name;
+        Identifier id = Identifier.tryParse(idPart);
+        if (id == null || !Registries.BLOCK.containsId(id))
+            throw new IOException("Unknown saved block: " + idPart);
+        var state = Registries.BLOCK.get(id).getDefaultState();
+        if (name.contains("[")) {
+            if (!name.endsWith("]")) throw new IOException("Invalid saved block state");
+            String spec = name.substring(name.indexOf('[') + 1, name.length() - 1);
+            for (String assignment : spec.split(",")) {
+                String[] pair = assignment.split("=", 2);
+                if (pair.length != 2) throw new IOException("Invalid saved property");
+                var property = state.getBlock().getStateManager().getProperty(pair[0]);
+                if (property == null) throw new IOException("Unknown saved property: " + pair[0]);
+                state = applySavedProperty(state, property, pair[1]);
+            }
+        }
+        return state;
+    }
+
+    private static <T extends Comparable<T>> net.minecraft.block.BlockState applySavedProperty(
+            net.minecraft.block.BlockState state, net.minecraft.state.property.Property<T> property, String value)
+            throws IOException {
+        T parsed = property.parse(value).orElseThrow(() -> new IOException("Invalid saved property value"));
+        return state.with(property, parsed);
     }
 
     private static void checkName(String name) throws IOException {
