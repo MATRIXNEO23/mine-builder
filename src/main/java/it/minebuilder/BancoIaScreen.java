@@ -21,6 +21,9 @@ import java.util.concurrent.CompletableFuture;
 public final class BancoIaScreen extends Screen {
     private TextFieldWidget prompt;
     private TextFieldWidget projectName;
+    private TextFieldWidget blueprintSearch;
+    private java.util.List<String> visibleBlueprints = java.util.List.of();
+    private int blueprintPage = 0;
     private static LoopbackRedirect pendingLogin;
     private static volatile String accessToken;
     private static volatile String selectedModel;
@@ -59,6 +62,15 @@ public final class BancoIaScreen extends Screen {
         projectName.setMaxLength(64);
         projectName.setPlaceholder(Text.literal("Nome progetto..."));
         addDrawableChild(projectName);
+        blueprintSearch = new TextFieldWidget(textRenderer, left, height / 2 + 124, 300, 20, Text.literal("Cerca progetto"));
+        blueprintSearch.setMaxLength(64);
+        blueprintSearch.setPlaceholder(Text.literal("Filtra i progetti salvati..."));
+        addDrawableChild(blueprintSearch);
+        addDrawableChild(ButtonWidget.builder(Text.literal("Precedenti"), button -> showBlueprintPage(-1))
+            .dimensions(left, height / 2 + 151, 145, 20).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal("Successivi"), button -> showBlueprintPage(1))
+            .dimensions(left + 155, height / 2 + 151, 145, 20).build());
+        refreshBlueprints();
         setInitialFocus(prompt);
     }
 
@@ -77,8 +89,23 @@ public final class BancoIaScreen extends Screen {
             }
             BlueprintLibrary.save(client, name, lastPlan);
             selectedBlueprint = name;
+            refreshBlueprints();
             status = Text.literal("Progetto salvato: " + name);
         } catch (Exception e) { status = Text.literal("Salvataggio: " + e.getMessage()); }
+    }
+
+    private void refreshBlueprints() {
+        try { visibleBlueprints = BlueprintLibrary.names(client); }
+        catch (Exception e) { visibleBlueprints = java.util.List.of(); }
+    }
+
+    private void showBlueprintPage(int direction) {
+        refreshBlueprints();
+        String filter = blueprintSearch.getText().trim().toLowerCase(java.util.Locale.ROOT);
+        long count = visibleBlueprints.stream().filter(n -> n.contains(filter)).count();
+        int pages = Math.max(1, ((int)count + 5) / 6);
+        blueprintPage = Math.floorMod(blueprintPage + direction, pages);
+        status = Text.literal("Pagina progetti " + (blueprintPage + 1) + "/" + pages);
     }
 
     private void cycleBlueprint() {
@@ -320,6 +347,17 @@ public final class BancoIaScreen extends Screen {
             for (int i = 0; i < display.length(); i += 46) {
                 context.drawCenteredTextWithShadow(textRenderer, display.substring(i, Math.min(i + 46, display.length())), width / 2, y, 0xFFFFFF);
                 y += 12;
+            }
+        }
+        if (blueprintSearch != null) {
+            String filter = blueprintSearch.getText().trim().toLowerCase(java.util.Locale.ROOT);
+            var filtered = visibleBlueprints.stream().filter(n -> n.contains(filter)).toList();
+            int pages = Math.max(1, (filtered.size() + 5) / 6);
+            int page = Math.floorMod(blueprintPage, pages);
+            for (int i = 0; i < 6 && page * 6 + i < filtered.size(); i++) {
+                String name = filtered.get(page * 6 + i);
+                context.drawTextWithShadow(textRenderer, (name.equals(selectedBlueprint) ? "> " : "  ") + name,
+                    width / 2 - 145, height / 2 + 180 + i * 12, 0xFFFFFF);
             }
         }
         super.render(context, mouseX, mouseY, delta);
