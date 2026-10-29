@@ -2,6 +2,8 @@ name: Build Mine Builder Fabric
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'downloads/**'
   workflow_dispatch:
 jobs:
   build:
@@ -44,3 +46,17 @@ jobs:
           else
             gh release create "$TAG" Mine-Builder-v0.1.0-Minecraft-1.20.1-Fabric.jar --title "Mine Builder - ultima build di test" --notes "Build di test per Minecraft 1.20.1 Fabric. Il collegamento GPT non è ancora operativo." --prerelease --target "$GITHUB_SHA"
           fi
+      - name: Save JAR inside repository downloads folder
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          FILE=Mine-Builder-v0.1.0-Minecraft-1.20.1-Fabric.jar
+          TARGET=downloads/$FILE
+          CONTENT=$(base64 -w 0 "$FILE")
+          SHA=$(gh api "repos/$GITHUB_REPOSITORY/contents/$TARGET" --jq .sha 2>/dev/null || true)
+          if [ -n "$SHA" ]; then
+            jq -n --arg message "Update downloadable Mine Builder JAR" --arg content "$CONTENT" --arg sha "$SHA" '{message:$message,content:$content,sha:$sha}' > /tmp/jar-payload.json
+          else
+            jq -n --arg message "Add downloadable Mine Builder JAR" --arg content "$CONTENT" '{message:$message,content:$content}' > /tmp/jar-payload.json
+          fi
+          gh api --method PUT "repos/$GITHUB_REPOSITORY/contents/$TARGET" --input /tmp/jar-payload.json
