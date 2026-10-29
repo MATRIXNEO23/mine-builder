@@ -43,3 +43,9 @@ Zero costi aggiuntivi; niente API key a consumo o fallback a pagamento. Non inse
 - Commit `840c8d7`: interazione clic destro sul blocco; risponde con messaggio di indisponibilità GPT e NON modifica il mondo.
 - Questi commit sono codice scritto e salvato, NON ancora confermati da compilazione o test in Minecraft. Nessuna GUI, pianificazione o protezione automatica implementata.
 - Prima di qualsiasi scrittura nel mondo implementare controlli d'ingombro, classificazione conservativa, conferma esplicita e backup verificato.
+
+## Sicurezza mondo — codice preliminare (29 ottobre 2026)
+- Commit `6c7c724`: aggiunta `WorldSafety.java`, classificazione conservativa e SOLA LETTURA di blocchi vuoti, terreno comune e blocchi protetti/sconosciuti.
+- Non viene ancora usata per costruire o cancellare blocchi; non dimostra l'origine dei blocchi (pietra piazzata da giocatore e pietra naturale possono essere indistinguibili).
+- Mancano scansione dell'area, anteprima, backup, conferma, test compilazione e test in gioco. Nessuna modifica distruttiva è abilitata.
+- Commit `10042a0`: test asset Banco IA salvati, non ancora collegati alla CI; tentativo di aggiornare workflow bloccato, non considerarlo riuscito.
