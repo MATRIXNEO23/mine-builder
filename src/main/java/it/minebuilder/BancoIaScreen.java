@@ -221,7 +221,8 @@ public final class BancoIaScreen extends Screen {
             });
             return;
         }
-        boolean build = message.toLowerCase(java.util.Locale.ROOT).matches("(?s).*(costruisc|edific|crea una cas|build |realizza una struttur|ricostruisc|riproduci).*");
+        // The builder is the default mode; explicit chat prefix requests conversation.
+        boolean build = !message.toLowerCase(java.util.Locale.ROOT).startsWith("chat:");
         if (build && (client == null || client.player == null || !client.isInSingleplayer())) {
             status = Text.literal("Solo mondi singleplayer."); return;
         }
