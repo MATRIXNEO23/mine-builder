@@ -260,8 +260,9 @@ public final class BuildPlan {
         if (Math.abs(x) > 128 || y < -32 || y > 128 || Math.abs(z) > 128)
             throw new IllegalArgumentException("Blueprint exceeds safe bounds");
         BlockPos pos = origin.add(x, y, z);
-        if (cells.put(pos, state) != null)
-            throw new IllegalArgumentException("Overlapping geometry at " + pos.toShortString());
+        BlockState previous = cells.putIfAbsent(pos, state);
+        if (previous != null && !previous.equals(state))
+            throw new IllegalArgumentException("Conflicting geometry at " + pos.toShortString());
         if (cells.size() > 20000)
             throw new IllegalArgumentException("Blueprint exceeds 20000 blocks");
     }
