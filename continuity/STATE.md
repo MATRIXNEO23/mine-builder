@@ -30,3 +30,10 @@ Zero costi aggiuntivi; niente API key a consumo o fallback a pagamento. Non inse
 - Documentato in `docs/INSTALLAZIONE.md`. Commit release workflow: `85feacaede0d6a96999dd705ff2128f022199a73`.
 - **Nessuna Release o JAR pubblicati/verificati ancora**; Actions artifact temporaneo non equivale a Release.
 - URL permanente elenco versioni: https://github.com/MATRIXNEO23/mine-builder/releases
+
+## Requisito confermato dall'utente — protezione del mondo (29 ottobre 2026)
+- L'utente sceglie posizione e orientamento della struttura prima dell'avvio; prevedere anteprima dell'ingombro e conferma.
+- La costruzione può scavare, livellare e sovrascrivere terreno naturale per fare spazio.
+- Non deve sovrascrivere costruzioni preesistenti senza consenso esplicito. Minecraft non distingue sempre blocchi naturali da blocchi piazzati: in caso di incertezza bloccare la modifica e chiedere conferma.
+- Prima di ogni modifica distruttiva, mostrare l'area coinvolta e predisporre un backup recuperabile; non promettere riconoscimento perfetto.
+- Questo è un requisito di progetto approvato, NON una funzione già implementata o testata. È un gate obbligatorio prima della costruzione automatica.
