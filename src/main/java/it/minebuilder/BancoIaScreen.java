@@ -592,7 +592,7 @@ public final class BancoIaScreen extends Screen {
                     } finally {
                         java.nio.file.Files.deleteIfExists(tmpPage);
                     }
-                    // Geometry already validated before persisting this page.
+                    BuildPlan parsedPage = BuildPlan.parse(answer, origin);
                     for (var placement : parsedPage.placements()) {
                         var existing = occupied.putIfAbsent(placement.pos(), placement.state());
                         if (existing != null && !existing.equals(placement.state()))
