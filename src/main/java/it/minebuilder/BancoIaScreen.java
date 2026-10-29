@@ -610,7 +610,28 @@ public final class BancoIaScreen extends Screen {
                         + previous.substring(0, Math.min(2500, previous.length()))
                         + " Return only JSON geometry plus mandatory boolean field complete."
                         + " Set complete=true ONLY if the entire requested building is fully represented.";
-                    String answer = ChatGptInference.ask(token, model, instruction).trim();
+                    String answer = null;
+                    BuildPlan parsedPage = null;
+                    for (int attempt = 0; attempt < 4; attempt++) {
+                        String adjusted = instruction + (attempt == 0 ? "" :
+                            " Retry: prior geometry exceeded the per-page safety limit. "
+                            + "Return no more than 5000 expanded block positions in this page; "
+                            + "defer remaining geometry to later pages.");
+                        answer = ChatGptInference.ask(token, model, adjusted).trim();
+                        if (answer.startsWith("```")) {
+                            int first = answer.indexOf((char)10);
+                            int last = answer.lastIndexOf("```");
+                            if (first >= 0 && last > first)
+                                answer = answer.substring(first + 1, last).trim();
+                        }
+                        try {
+                            parsedPage = BuildPlan.parse(answer, origin);
+                            break;
+                        } catch (IllegalArgumentException ex) {
+                            if (attempt == 3) throw ex;
+                            generatorStage = "Pagina " + (page + 1) + ": geometria troppo grande, riprovo";
+                        }
+                    }
                     if (answer.startsWith("```")) {
                         int first = answer.indexOf((char)10), last = answer.lastIndexOf("```");
                         if (first >= 0 && last > first) answer = answer.substring(first + 1, last).trim();
@@ -627,7 +648,6 @@ public final class BancoIaScreen extends Screen {
                     } finally {
                         java.nio.file.Files.deleteIfExists(tmpPage);
                     }
-                    BuildPlan parsedPage = BuildPlan.parse(answer, origin);
                     for (var placement : parsedPage.placements()) {
                         var existing = occupied.putIfAbsent(placement.pos(), placement.state());
                         if (existing != null && !existing.equals(placement.state()))
