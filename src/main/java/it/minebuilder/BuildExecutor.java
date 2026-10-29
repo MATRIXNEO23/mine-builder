@@ -68,6 +68,8 @@ public final class BuildExecutor {
                             }
                         }
                     }
+                    int blockedCount = 0;
+                    BlockPos firstBlocked = null;
                     for (var candidate : pending) {
                         BlockPos target = candidate.pos();
                         if (!world.isInBuildLimit(target)) {
@@ -80,10 +82,16 @@ public final class BuildExecutor {
                         if (!existing.isAir() && !existing.equals(candidate.state())
                             && !isNaturalTerrain(existing)
                             && !isTreeTrunk(world, target, existing)) {
-                            lastError = "Area occupata: " + target.toShortString();
-                            cancel();
-                            return;
+                            blockedCount++;
+                            if (firstBlocked == null) firstBlocked = target;
                         }
+                    }
+                    if (blockedCount > 0) {
+                        lastError = "Area occupata: " + blockedCount
+                            + " blocchi protetti; primo in " + firstBlocked.toShortString()
+                            + ". Nessuna modifica eseguita.";
+                        cancel();
+                        return;
                     }
                     preflightDone = true;
                 }
