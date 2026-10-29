@@ -252,7 +252,7 @@ public final class BancoIaScreen extends Screen {
               + "Use minecraft:air blocks explicitly to clear doorways, stairs and passageways. "
               + "Descriptive adjectives such as scary, gothic, enormous or haunted describe style and must not change the requested object category. "
               + "Do not substitute a house for another requested object. "
-              + "Maximum 20000 blocks; x,z within -128..128, y within -32..128; no duplicate positions. "
+              + "Maximum 20000 blocks; x,z within -128..128, y within -32..128; avoid conflicting materials at the same position. "
               + "If too complex for a single response, return a coherent small section rather than claiming completion. "
               + "No markdown, no explanation."
             : message;
@@ -273,12 +273,19 @@ public final class BancoIaScreen extends Screen {
                             int last = json.lastIndexOf("```");
                             if (first >= 0 && last > first) json = json.substring(first + 1, last).trim();
                         }
+                        // Accept a JSON object wrapped in explanatory text, without executing commands.
+                        if (!json.startsWith("{")) {
+                            int start = json.indexOf('{');
+                            int end = json.lastIndexOf('}');
+                            if (start >= 0 && end > start) json = json.substring(start, end + 1);
+                        }
                         pendingPlan = BuildPlan.parse(json, origin);
                         lastPlan = pendingPlan;
                         lastReply = "Progetto pronto: " + pendingPlan.placements().size() + " blocchi. Premi Costruisci.";
                         status = Text.literal("Progetto pronto, conferma.");
                     } catch (Exception e) {
-                        lastReply = "Progetto non valido: " + e.getMessage();
+                        lastReply = "Progetto non valido (" + e.getClass().getSimpleName() + "): "
+                            + e.getMessage() + ". Riprova specificando dimensioni e dettagli.";
                         status = Text.literal("Progetto non valido.");
                     }
                 } else {
