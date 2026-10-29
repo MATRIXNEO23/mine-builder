@@ -75,7 +75,25 @@ public final class BuildExecutor {
                         cancel();
                         return;
                     }
-                    if (!world.setBlockState(pos, entry.state(), 3)) break;
+                    // Recheck immediately before mutation: the player may have placed
+                    // a block after preflight while the build was progressing.
+                    var current = world.getBlockState(pos);
+                    if (!current.isAir() && !current.equals(entry.state())
+                            && !isNaturalTerrain(current)) {
+                        lastError = "Costruzione interrotta: blocco protetto in " + pos.toShortString();
+                        cancel();
+                        return;
+                    }
+                    if (current.equals(entry.state())) {
+                        pending.remove();
+                        processed++;
+                        continue;
+                    }
+                    if (!world.setBlockState(pos, entry.state(), 3)) {
+                        lastError = "Impossibile posizionare un blocco in " + pos.toShortString();
+                        cancel();
+                        return;
+                    }
                     pending.remove();
                     processed++;
                 }
