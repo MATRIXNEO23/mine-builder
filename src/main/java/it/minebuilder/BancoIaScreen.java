@@ -312,6 +312,25 @@ public final class BancoIaScreen extends Screen {
                         + references + " Use only supported facts; do not invent measured dimensions. "
                         + "Reason about structural layout before emitting the final JSON.";
                 }
+                if (build) {
+                    try {
+                        ArchitectureResearch.VisualReference visual = ArchitectureResearch.visualReference(message);
+                        if (visual != null) {
+                            String analysis = ChatGptInference.askWithImage(token, model,
+                                "Analyze this Wikimedia architectural reference image: " + visual.title()
+                                + ". In Italian, identify only VISIBLE geometry, proportions, openings, "
+                                + "architectural details and possible floor-plan layout. "
+                                + "Separate observations from estimates. Do not invent measurements. "
+                                + "Return a concise technical description, not building JSON.",
+                                visual.image(), visual.mime());
+                            enriched += " Actual visual analysis of reference (" + visual.title()
+                                + "): " + analysis.substring(0, Math.min(4500, analysis.length()))
+                                + ". This is an example, not proof of the requested building's dimensions.";
+                        }
+                    } catch (Exception ignored) {
+                        enriched += " Visual analysis unavailable; do not claim reference images were inspected.";
+                    }
+                }
                 return ChatGptInference.ask(token, model, enriched);
             } catch (Exception e) {
                 return "Errore GPT: " + e.getMessage();
