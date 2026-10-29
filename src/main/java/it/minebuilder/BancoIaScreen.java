@@ -20,6 +20,7 @@ import java.util.concurrent.CompletableFuture;
 /** Lightweight client-side interface. Never modifies the Minecraft world. */
 public final class BancoIaScreen extends Screen {
     private TextFieldWidget prompt;
+    private TextFieldWidget projectName;
     private static LoopbackRedirect pendingLogin;
     private static volatile String accessToken;
     private static volatile String selectedModel;
@@ -54,6 +55,10 @@ public final class BancoIaScreen extends Screen {
             .dimensions(left + 155, height / 2 + 69, 145, 20).build());
         addDrawableChild(ButtonWidget.builder(Text.literal("Replica selezionato"), button -> replicateBlueprint())
             .dimensions(left + 155, height / 2 + 94, 145, 20).build());
+        projectName = new TextFieldWidget(textRenderer, left, height / 2 + 96, 145, 20, Text.literal("Nome progetto"));
+        projectName.setMaxLength(64);
+        projectName.setPlaceholder(Text.literal("Nome progetto..."));
+        addDrawableChild(projectName);
         setInitialFocus(prompt);
     }
 
@@ -61,12 +66,15 @@ public final class BancoIaScreen extends Screen {
         if (client == null || lastPlan == null) {
             status = Text.literal("Prima genera un progetto."); return;
         }
-        String name = prompt.getText().trim().toLowerCase(java.util.Locale.ROOT)
+        String name = projectName.getText().trim().toLowerCase(java.util.Locale.ROOT)
             .replaceAll("[^a-z0-9_-]+", "-").replaceAll("^-+|-+$", "");
         if (name.isEmpty() || name.length() > 64) {
-            status = Text.literal("Inserisci un nome breve nel campo."); return;
+            status = Text.literal("Inserisci un nome nel campo Nome progetto."); return;
         }
         try {
+            if (BlueprintLibrary.names(client).contains(name)) {
+                status = Text.literal("Nome gia presente: scegline un altro per non sovrascrivere."); return;
+            }
             BlueprintLibrary.save(client, name, lastPlan);
             selectedBlueprint = name;
             status = Text.literal("Progetto salvato: " + name);
@@ -79,7 +87,8 @@ public final class BancoIaScreen extends Screen {
             if (names.isEmpty()) { status = Text.literal("Nessun progetto salvato."); return; }
             blueprintIndex = Math.floorMod(blueprintIndex, names.size());
             selectedBlueprint = names.get(blueprintIndex++);
-            status = Text.literal("Selezionato: " + selectedBlueprint);
+            projectName.setText(selectedBlueprint);
+            status = Text.literal("Selezionato: " + selectedBlueprint + " (" + names.size() + " progetti)");
         } catch (Exception e) { status = Text.literal("Elenco: " + e.getMessage()); }
     }
 
