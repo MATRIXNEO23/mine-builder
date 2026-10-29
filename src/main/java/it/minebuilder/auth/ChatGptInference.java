@@ -62,7 +62,17 @@ public final class ChatGptInference {
     public static String ask(String token, String model, String message) throws Exception {
         JsonObject body = new JsonObject();
         body.addProperty("model", model);
-        body.addProperty("input", message);
+        JsonArray input = new JsonArray();
+        JsonObject userMessage = new JsonObject();
+        userMessage.addProperty("role", "user");
+        JsonArray content = new JsonArray();
+        JsonObject textPart = new JsonObject();
+        textPart.addProperty("type", "input_text");
+        textPart.addProperty("text", message);
+        content.add(textPart);
+        userMessage.add("content", content);
+        input.add(userMessage);
+        body.add("input", input);
         body.addProperty("store", false);
         body.addProperty("stream", true);
         HttpRequest request = HttpRequest.newBuilder(URI.create("https://api.openai.com/v1/responses"))
