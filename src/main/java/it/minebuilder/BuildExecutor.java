@@ -1,7 +1,6 @@
 package it.minebuilder;
 
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.BlockPos;
 import java.util.*;
 
