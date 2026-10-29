@@ -69,6 +69,15 @@ public final class BancoIaScreen extends Screen {
                 .dimensions(left, top + 110, half, 20).build());
             addDrawableChild(ButtonWidget.builder(Text.literal("3. Costruisci"), button -> confirmBuild())
                 .dimensions(left + half + 8, top + 110, half, 20).build());
+            addDrawableChild(ButtonWidget.builder(Text.literal("Riprendi costruzione"), button -> {
+                try {
+                    BuildExecutor.resume(client);
+                    status = Text.literal("Costruzione ripresa: sezioni " + BuildExecutor.sectionProgress());
+                    close();
+                } catch (Exception e) {
+                    status = Text.literal("Ripresa non riuscita: " + e.getMessage());
+                }
+            }).dimensions(left, top + 162, panel, 20).build());
             addDrawableChild(ButtonWidget.builder(Text.literal("Dettagli e controlli"), button -> openDetails())
                 .dimensions(left, top + 136, panel, 20).build());
         } else {
