@@ -246,13 +246,37 @@ public final class BuildPlan {
     }
 
     private static BlockState blueprintBlock(String name) {
-        Identifier id = Identifier.tryParse(name);
+        String blockId = name;
+        String stateSpec = "";
+        int bracket = name.indexOf('[');
+        if (bracket >= 0) {
+            if (!name.endsWith("]")) throw new IllegalArgumentException("Invalid block state: " + name);
+            blockId = name.substring(0, bracket);
+            stateSpec = name.substring(bracket + 1, name.length() - 1);
+        }
+        Identifier id = Identifier.tryParse(blockId);
         if (id == null || !Registries.BLOCK.containsId(id))
             throw new IllegalArgumentException("Invalid block ID: " + name);
         BlockState state = Registries.BLOCK.get(id).getDefaultState();
+        if (!stateSpec.isBlank()) {
+            for (String assignment : stateSpec.split(",")) {
+                String[] pair = assignment.trim().split("=", 2);
+                if (pair.length != 2) throw new IllegalArgumentException("Invalid property: " + assignment);
+                var property = state.getBlock().getStateManager().getProperty(pair[0].trim());
+                if (property == null) throw new IllegalArgumentException("Unknown block property: " + pair[0]);
+                state = withParsedProperty(state, property, pair[1].trim());
+            }
+        }
         if (state.getBlock() instanceof LeavesBlock && state.contains(Properties.PERSISTENT))
             state = state.with(Properties.PERSISTENT, true);
         return state;
+    }
+
+    private static <T extends Comparable<T>> BlockState withParsedProperty(
+            BlockState state, net.minecraft.state.property.Property<T> property, String value) {
+        T parsed = property.parse(value).orElseThrow(() ->
+            new IllegalArgumentException("Invalid value " + value + " for " + property.getName()));
+        return state.with(property, parsed);
     }
 
     private static void addCell(Map<BlockPos, BlockState> cells, BlockPos origin,
