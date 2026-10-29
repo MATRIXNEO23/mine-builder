@@ -37,6 +37,12 @@ public final class BuildExecutor {
             throw new IllegalStateException("A build is already running; finish or cancel it first");
         plan.validateSections();
         try {
+            Path existing = progressPath(client);
+            if (Files.isRegularFile(existing)) {
+                List<String> previous = Files.readAllLines(existing);
+                if (previous.size() == 2 && !previous.get(1).equals("COMPLETE"))
+                    throw new IOException("Esiste un lavoro sospeso: usa Riprendi costruzione");
+            }
             BlueprintLibrary.save(client, RESUME_NAME, plan);
             saveProgress(client, key, 0);
             Path originFile = progressPath(client).resolveSibling("active-build.origin");
@@ -164,8 +170,11 @@ public final class BuildExecutor {
                     processed++;
                 }
                 if (pending.isEmpty()) {
-                    completedSections++;
-                    try { saveProgress(client, worldKey, completedSections); }
+                    try {
+                        // Persist world changes before advancing the checkpoint.
+                        world.getChunkManager().save(true, false);
+                        saveProgress(client, worldKey, completedSections + 1);
+                        completedSections++;
                     catch (IOException e) {
                         lastError = "Salvataggio avanzamento fallito: " + e.getMessage();
                         cancel();
@@ -228,7 +237,7 @@ public final class BuildExecutor {
         Path file = progressPath(client);
         Path tmp = Files.createTempFile(file.getParent(), "progress-", ".tmp");
         try {
-            Files.writeString(tmp, dimension + "\\n" + done + "\\n");
+            Files.writeString(tmp, dimension + System.lineSeparator() + done + System.lineSeparator());
             try { Files.move(tmp, file, StandardCopyOption.ATOMIC_MOVE,
                 StandardCopyOption.REPLACE_EXISTING); }
             catch (AtomicMoveNotSupportedException e) {
