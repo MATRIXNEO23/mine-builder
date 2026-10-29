@@ -31,6 +31,10 @@ public final class BancoIaScreen extends Screen {
     private static volatile String selectedModel;
     private Text status = Text.literal("ChatGPT non collegato.");
     private String lastReply = "";
+    private static volatile String generatorStage = "Inattivo";
+    private static volatile int generatorPages = 0;
+    private static volatile int generatorBlocks = 0;
+    private static volatile boolean generatorRunning = false;
     private static BuildPlan placementPlan;
     private BuildPlan pendingPlan;
     private BuildPlan lastPlan;
@@ -467,6 +471,10 @@ public final class BancoIaScreen extends Screen {
               + "No markdown, no explanation."
             : message;
         status = Text.literal(build ? "Ricerca architettura e planimetrie..." : "GPT sta rispondendo...");
+        generatorRunning = build;
+        generatorPages = 0;
+        generatorBlocks = 0;
+        generatorStage = build ? "Ricerca riferimenti architettonici" : "Chat";
         CompletableFuture.supplyAsync(() -> {
             try {
                 String enriched = request;
@@ -482,6 +490,7 @@ public final class BancoIaScreen extends Screen {
                         + "Reason about structural layout before emitting the final JSON. For amphitheatres such as the Colosseum, distinguish the elliptical footprint, concentric rings, arena, tiered seating, repeated arches, circulation and entrances. Use rings for massing and explicit detail blocks or air for openings; do not claim 1:1 accuracy without verified dimensions. This example is not a mandatory template for other requests.";
                 }
                 if (build && !originalDesign) {
+                    generatorStage = "Analisi immagini e planimetrie";
                     try {
                         ArchitectureResearch.VisualReference visual = ArchitectureResearch.visualReference(message);
                         if (visual != null) {
@@ -501,6 +510,7 @@ public final class BancoIaScreen extends Screen {
                     }
                 }
                 if (build) {
+                    generatorStage = "Progettazione architettonica";
                     String architecturalBrief = ChatGptInference.ask(token, model,
                         "Act as an architectural designer creating an ORIGINAL, coherent Minecraft "
                         + "structure. User request: " + message + ". "
@@ -537,6 +547,7 @@ public final class BancoIaScreen extends Screen {
                 java.util.Map<BlockPos, net.minecraft.block.BlockState> occupied = new java.util.HashMap<>();
                 String previous = "";
                 for (int page = 0; page < 100; page++) {
+                    generatorStage = "Generazione geometria, pagina " + (page + 1);
                     String instruction = enriched + " This is generation page " + (page + 1)
                         + " of a progressive architectural project. Keep the SAME architectural blueprint and coordinate origin."
                         + " Never repeat blocks from previous pages. Previously generated summary: "
@@ -570,6 +581,9 @@ public final class BancoIaScreen extends Screen {
                     if (validated.size() > 2_000_000)
                         throw new IllegalStateException("Limite di sicurezza del progetto superato");
                     pages.add(answer);
+                    generatorPages = pages.size();
+                    generatorBlocks = validated.size();
+                    generatorStage = "Pagina " + pages.size() + " validata e salvata";
                     if (object.get("complete").getAsBoolean()) return "PAGED:" + String.join("##PAGE##", pages);
                     previous += " Page " + (page + 1) + ": " + answer.substring(0, Math.min(350, answer.length()));
                 }
@@ -578,6 +592,8 @@ public final class BancoIaScreen extends Screen {
                 return "Errore GPT: " + e.getMessage();
             }
         }).thenAccept(reply -> {
+            generatorRunning = false;
+            generatorStage = reply.startsWith("Errore GPT:") ? "Interrotto: verifica dettagli" : "Generazione conclusa";
             if (client != null) client.execute(() -> {
                 if (build && !reply.startsWith("Errore GPT:")) {
                     try {
@@ -634,6 +650,13 @@ public final class BancoIaScreen extends Screen {
         renderBackground(context);
         context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 12, 0xFFFFFF);
         String buildError = BuildExecutor.lastError();
+        if (generatorRunning || generatorPages > 0) {
+            String activity = "Generatore: " + generatorStage + " | pagine " + generatorPages
+                + " | blocchi " + generatorBlocks;
+            context.drawCenteredTextWithShadow(textRenderer,
+                textRenderer.trimToWidth(activity, Math.max(100, width - 24)),
+                width / 2, 46, 0xBBDDFF);
+        }
         String summary = !buildError.isEmpty() ? "Costruzione: " + buildError : status.getString();
         String shortSummary = textRenderer.trimToWidth(summary, Math.max(100, width - 24));
         context.drawCenteredTextWithShadow(textRenderer, shortSummary, width / 2, 32,
