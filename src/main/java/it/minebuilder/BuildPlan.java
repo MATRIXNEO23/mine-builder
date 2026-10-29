@@ -14,6 +14,58 @@ public final class BuildPlan {
     private BuildPlan(List<Placement> placements) { this.placements = List.copyOf(placements); }
     public List<Placement> placements() { return placements; }
 
+    /** Parametric house: GPT chooses dimensions/materials, Java builds coherent geometry. */
+    public static BuildPlan house(String json, BlockPos origin) {
+        JsonObject root = JsonParser.parseString(json).getAsJsonObject();
+        int w = root.get("width").getAsInt(), d = root.get("depth").getAsInt();
+        int h = root.get("height").getAsInt();
+        if (w < 5 || w > 15 || d < 5 || d > 15 || h < 3 || h > 8)
+            throw new IllegalArgumentException("House dimensions out of range");
+        BlockState wall = material(root, "wall", "minecraft:oak_planks");
+        BlockState roof = material(root, "roof", "minecraft:dark_oak_planks");
+        BlockState floor = material(root, "floor", "minecraft:stone_bricks");
+        BlockState glass = Registries.BLOCK.get(new Identifier("minecraft:glass_pane")).getDefaultState();
+        BlockState air = Registries.BLOCK.get(new Identifier("minecraft:air")).getDefaultState();
+        Map<BlockPos, BlockState> cells = new LinkedHashMap<>();
+        for (int x = 0; x < w; x++) for (int z = 0; z < d; z++) {
+            put(cells, origin, x, 0, z, floor);
+            for (int y = 1; y <= h + 2; y++) put(cells, origin, x, y, z, air);
+            for (int y = 1; y <= h; y++) {
+                if (x == 0 || z == 0 || x == w - 1 || z == d - 1)
+                    put(cells, origin, x, y, z, wall);
+            }
+            put(cells, origin, x, h + 1, z, roof);
+        }
+        // Centered, two-block-high entrance.
+        int doorX = w / 2;
+        put(cells, origin, doorX, 1, 0, air);
+        put(cells, origin, doorX, 2, 0, air);
+        // Side windows at eye height.
+        for (int z = 2; z < d - 2; z += 3) {
+            put(cells, origin, 0, 2, z, glass);
+            put(cells, origin, w - 1, 2, z, glass);
+        }
+        for (int x = 2; x < w - 2; x += 3) {
+            put(cells, origin, x, 2, d - 1, glass);
+        }
+        List<Placement> result = new ArrayList<>();
+        cells.forEach((pos, state) -> result.add(new Placement(pos, state)));
+        return new BuildPlan(result);
+    }
+
+    private static void put(Map<BlockPos, BlockState> cells, BlockPos origin,
+                            int x, int y, int z, BlockState state) {
+        cells.put(origin.add(x, y, z), state);
+    }
+
+    private static BlockState material(JsonObject root, String key, String fallback) {
+        String value = root.has(key) ? root.get(key).getAsString() : fallback;
+        Identifier id = Identifier.tryParse(value);
+        if (id == null || !Registries.BLOCK.containsId(id))
+            throw new IllegalArgumentException("Unknown material: " + value);
+        return Registries.BLOCK.get(id).getDefaultState();
+    }
+
     public static BuildPlan parse(String json, BlockPos origin) {
         JsonObject root = JsonParser.parseString(json).getAsJsonObject();
         JsonArray blocks = root.getAsJsonArray("blocks");
