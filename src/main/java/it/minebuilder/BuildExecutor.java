@@ -8,6 +8,9 @@ import net.minecraft.fluid.Fluids;
 import net.minecraft.util.math.Direction;
 import net.minecraft.registry.tag.BlockTags;
 import java.util.*;
+import java.nio.file.*;
+import java.io.IOException;
+import net.minecraft.util.WorldSavePath;
 
 /** Local singleplayer prototype: paced placement through the integrated server thread. */
 public final class BuildExecutor {
@@ -16,6 +19,9 @@ public final class BuildExecutor {
     private static Queue<BuildPlan> remainingSections = new ArrayDeque<>();
     private static int completedSections;
     private static int totalSections;
+    private static BuildPlan activePlan;
+    private static String activeDimension = "";
+    private static final String RESUME_NAME = "active-build";
     private static String worldKey = "";
     private static net.minecraft.server.MinecraftServer ownerServer;
     private static volatile boolean inFlight;
@@ -30,6 +36,17 @@ public final class BuildExecutor {
         if (inFlight || !pending.isEmpty() || !remainingSections.isEmpty())
             throw new IllegalStateException("A build is already running; finish or cancel it first");
         plan.validateSections();
+        try {
+            BlueprintLibrary.save(client, RESUME_NAME, plan);
+            saveProgress(client, key, 0);
+            Path originFile = progressPath(client).resolveSibling("active-build.origin");
+            BlockPos origin = plan.placements().get(0).pos();
+            Files.writeString(originFile, origin.getX() + "," + origin.getY() + "," + origin.getZ());
+        } catch (IOException e) {
+            throw new IllegalStateException("Impossibile salvare il progetto prima di costruire", e);
+        }
+        activePlan = plan;
+        activeDimension = key;
         remainingSections = new ArrayDeque<>(plan.sections());
         totalSections = remainingSections.size();
         completedSections = 0;
@@ -146,7 +163,14 @@ public final class BuildExecutor {
                     pending.remove();
                     processed++;
                 }
-                if (pending.isEmpty()) completedSections++;
+                if (pending.isEmpty()) {
+                    completedSections++;
+                    try { saveProgress(client, worldKey, completedSections); }
+                    catch (IOException e) {
+                        lastError = "Salvataggio avanzamento fallito: " + e.getMessage();
+                        cancel();
+                    }
+                }
             } finally {
                 inFlight = false;
             }
@@ -189,6 +213,67 @@ public final class BuildExecutor {
             }
         }
         return false;
+    }
+
+    private static Path progressPath(MinecraftClient client) throws IOException {
+        if (client.getServer() == null || !client.isInSingleplayer())
+            throw new IOException("Mondo locale non disponibile");
+        Path dir = client.getServer().getSavePath(WorldSavePath.ROOT).resolve("minebuilder");
+        Files.createDirectories(dir);
+        return dir.resolve("active-build.progress");
+    }
+
+    private static void saveProgress(MinecraftClient client, String dimension, int done)
+            throws IOException {
+        Path file = progressPath(client);
+        Path tmp = Files.createTempFile(file.getParent(), "progress-", ".tmp");
+        try {
+            Files.writeString(tmp, dimension + "\\n" + done + "\\n");
+            try { Files.move(tmp, file, StandardCopyOption.ATOMIC_MOVE,
+                StandardCopyOption.REPLACE_EXISTING); }
+            catch (AtomicMoveNotSupportedException e) {
+                Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING);
+            }
+        } finally { Files.deleteIfExists(tmp); }
+    }
+
+    /** Resume only on explicit request; completed sections are not regenerated. */
+    public static void resume(MinecraftClient client) throws IOException {
+        if (inFlight || !pending.isEmpty() || !remainingSections.isEmpty())
+            throw new IOException("Costruzione gia in corso");
+        Path file = progressPath(client);
+        if (!Files.isRegularFile(file)) throw new IOException("Nessun lavoro sospeso");
+        List<String> lines = Files.readAllLines(file);
+        if (lines.size() != 2) throw new IOException("Avanzamento non valido");
+        String dimension = client.world.getRegistryKey().getValue().toString();
+        if (!dimension.equals(lines.get(0))) throw new IOException("Dimensione diversa dal progetto");
+        int done;
+        try { done = Integer.parseInt(lines.get(1)); }
+        catch (NumberFormatException e) { throw new IOException("Avanzamento non valido", e); }
+        // Saved blueprint uses the first block as its reference point.
+        // Persisting the original absolute origin is essential for exact resumption.
+        Path originFile = progressPath(client).resolveSibling("active-build.origin");
+        if (!Files.isRegularFile(originFile)) throw new IOException("Origine non salvata");
+        String[] coords = Files.readString(originFile).trim().split(",");
+        if (coords.length != 3) throw new IOException("Origine non valida");
+        BlockPos origin;
+        try { origin = new BlockPos(Integer.parseInt(coords[0]),
+            Integer.parseInt(coords[1]), Integer.parseInt(coords[2])); }
+        catch (NumberFormatException e) { throw new IOException("Origine non valida", e); }
+        BuildPlan plan = BlueprintLibrary.load(client, RESUME_NAME, origin);
+        List<BuildPlan> sections = plan.sections();
+        if (done < 0 || done >= sections.size()) throw new IOException("Nessuna sezione da riprendere");
+        plan.validateSections();
+        activePlan = plan;
+        activeDimension = dimension;
+        ownerServer = client.getServer();
+        worldKey = dimension;
+        totalSections = sections.size();
+        completedSections = done;
+        remainingSections = new ArrayDeque<>(sections.subList(done + 1, sections.size()));
+        pending = new ArrayDeque<>(sections.get(done).placements());
+        preflightDone = false;
+        lastError = "";
     }
 
     public static String lastError() { return lastError; }
