@@ -23,6 +23,7 @@ public final class BancoIaScreen extends Screen {
     private static volatile String accessToken;
     private static volatile String selectedModel;
     private Text status = Text.literal("ChatGPT non collegato.");
+    private String lastReply = "";
 
     public BancoIaScreen() {
         super(Text.literal("Banco IA - Mine Builder"));
@@ -111,7 +112,10 @@ public final class BancoIaScreen extends Screen {
                 return "Errore GPT: " + e.getMessage();
             }
         }).thenAccept(reply -> {
-            if (client != null) client.execute(() -> status = Text.literal(reply));
+            if (client != null) client.execute(() -> {
+                lastReply = reply;
+                status = Text.literal(reply.startsWith("Errore GPT:") ? "Richiesta non riuscita." : "Risposta GPT ricevuta.");
+            });
         });
     }
 
@@ -120,6 +124,14 @@ public final class BancoIaScreen extends Screen {
         renderBackground(context);
         context.drawCenteredTextWithShadow(textRenderer, title, width / 2, height / 2 - 45, 0xFFFFFF);
         context.drawCenteredTextWithShadow(textRenderer, status, width / 2, height / 2 + 52, 0xAAAAAA);
+        if (!lastReply.isEmpty()) {
+            String display = lastReply.length() > 240 ? lastReply.substring(0, 240) + "..." : lastReply;
+            int y = height / 2 + 80;
+            for (int i = 0; i < display.length(); i += 46) {
+                context.drawCenteredTextWithShadow(textRenderer, display.substring(i, Math.min(i + 46, display.length())), width / 2, y, 0xFFFFFF);
+                y += 12;
+            }
+        }
         super.render(context, mouseX, mouseY, delta);
     }
 
