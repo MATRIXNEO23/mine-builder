@@ -13,3 +13,11 @@
 - **Divieto di inferenza**: questo checkpoint descrive una progettazione e una preparazione, non una mod installabile.
 
 > Nuovi checkpoint: aggiungere in coda, senza sovrascrivere quelli precedenti. Ogni voce deve specificare risultati verificati, artefatti e prossimo passo. Il commit dell'operazione è recuperabile dallo storico GitHub.
+
+## CP-2026-10-29-002 — 29 ottobre 2026 — configurazione Fabric e gate inferenza
+
+- File confermati nel repository: build.gradle, settings.gradle, gradle.properties, workflow .github/workflows/build.yml, sorgenti iniziali Fabric, scripts/verify-plan-sharing.mjs e test mock.
+- Commit codice prima del checkpoint: 8be5d3bd1c03ea599e089bdf1b7b583c00da48e9.
+- Test e compilazione: nessun risultato CI confermato; non dichiarare build riuscita.
+- Login OAuth e inferenza ChatGPT Plus: non implementati e non verificati.
+- Prossimo passo: verificare GitHub Actions, poi bridge OAuth con SDK ufficiale e prova autorizzata senza crediti aggiuntivi.
