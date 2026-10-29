@@ -23,7 +23,7 @@ public final class BancoIaScreen extends Screen {
         prompt.setMaxLength(512);
         prompt.setPlaceholder(Text.literal("Descrivi cosa vuoi costruire..."));
         addDrawableChild(prompt);
-        addDrawableChild(ButtonWidget.builder(Text.literal("Collega ChatGPT"), button -> {
+        addDrawableChild(ButtonWidget.builder(Text.literal("Info collegamento GPT"), button -> {
             // Only opens official documentation; it is NOT an OAuth login or a connected session.
             Util.getOperatingSystem().open("https://developers.openai.com/siwc/quickstart");
             status = Text.literal("Guida aperta: accesso nella mod non ancora disponibile.");
