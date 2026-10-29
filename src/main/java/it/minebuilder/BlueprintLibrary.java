@@ -67,7 +67,7 @@ public final class BlueprintLibrary {
         try {
             JsonArray blocks = JsonParser.parseString(Files.readString(file))
                 .getAsJsonObject().getAsJsonArray("blocks");
-            if (blocks == null || blocks.isEmpty() || blocks.size() > 2_000_000)
+            if (blocks == null || blocks.size() == 0 || blocks.size() > 2_000_000)
                 throw new IOException("Invalid block count");
             List<BuildPlan.Placement> placements = new ArrayList<>();
             Set<BlockPos> seen = new HashSet<>();
