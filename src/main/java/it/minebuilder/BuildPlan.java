@@ -11,6 +11,11 @@ import java.util.*;
 public final class BuildPlan {
     public record Placement(BlockPos pos, BlockState state) {}
     private final List<Placement> placements;
+    public static BuildPlan fromPlacements(List<Placement> placements) {
+        if (placements == null || placements.isEmpty() || placements.size() > 2_000_000)
+            throw new IllegalArgumentException("Invalid blueprint size");
+        return new BuildPlan(placements);
+    }
     private BuildPlan(List<Placement> placements) { this.placements = List.copyOf(placements); }
     public List<Placement> placements() { return placements; }
 
