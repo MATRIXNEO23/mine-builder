@@ -8,6 +8,9 @@
   "entrypoints": {
     "main": [
       "it.minebuilder.MineBuilder"
+    ],
+    "client": [
+      "it.minebuilder.MineBuilderClient"
     ]
   },
   "depends": {
