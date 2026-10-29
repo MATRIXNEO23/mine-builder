@@ -13,9 +13,24 @@ import java.util.ArrayList;
 /** Registers GUI behavior only on the Minecraft client. */
 public final class MineBuilderClient implements ClientModInitializer {
     private static int quarterTurns = 0;
+    private static boolean awaitingPreflight = false;
     @Override
     public void onInitializeClient() {
         ClientTickEvents.END_CLIENT_TICK.register(BuildExecutor::tick);
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            if (!awaitingPreflight) return;
+            if (BuildExecutor.preflightPassed()) {
+                BancoIaScreen.takePlacementPlan();
+                quarterTurns = 0;
+                awaitingPreflight = false;
+                if (client.player != null) client.player.sendMessage(net.minecraft.text.Text.literal("Area verificata: costruzione in corso."), false);
+            } else if (!BuildExecutor.lastError().isEmpty()
+                    && !BuildExecutor.lastError().startsWith("In attesa")) {
+                awaitingPreflight = false;
+                if (client.player != null) client.player.sendMessage(net.minecraft.text.Text.literal(
+                    BuildExecutor.lastError() + " Usa il martello su un altro punto per riprovare."), false);
+            }
+        });
         UseItemCallback.EVENT.register((player, world, hand) -> {
             if (!player.getStackInHand(hand).isOf(MineBuilder.BUILDER_TOOL))
                 return TypedActionResult.pass(player.getStackInHand(hand));
@@ -50,9 +65,8 @@ public final class MineBuilderClient implements ClientModInitializer {
                 }
                 try {
                     BuildExecutor.start(MinecraftClient.getInstance(), BuildPlan.fromPlacements(moved));
-                    BancoIaScreen.takePlacementPlan();
-                    quarterTurns = 0;
-                    player.sendMessage(net.minecraft.text.Text.literal("Costruzione avviata nel punto scelto."), false);
+                    awaitingPreflight = true;
+                    player.sendMessage(net.minecraft.text.Text.literal("Verifica area in corso; se occupata potrai riprovare senza rigenerare."), false);
                 } catch (Exception ex) {
                     player.sendMessage(net.minecraft.text.Text.literal("Posizionamento: " + ex.getMessage()), false);
                 }
