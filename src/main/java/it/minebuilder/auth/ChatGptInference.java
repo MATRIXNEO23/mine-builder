@@ -30,19 +30,33 @@ public final class ChatGptInference {
     private static String readableError(InputStream stream) throws IOException {
         String raw = new String(stream.readNBytes(4096), StandardCharsets.UTF_8);
         try {
-            JsonObject json = JsonParser.parseString(raw).getAsJsonObject();
-            JsonObject error = json.has("error") && json.get("error").isJsonObject()
-                ? json.getAsJsonObject("error") : json;
-            String code = error.has("code") && !error.get("code").isJsonNull()
-                ? error.get("code").getAsString() : "unknown";
-            String message = error.has("message") && !error.get("message").isJsonNull()
-                ? error.get("message").getAsString() : "No message";
-            message = message.replaceAll("[\\r\\n\\t]", " ");
-            return ("code=" + code + " message=" + message).substring(0,
-                Math.min(350, ("code=" + code + " message=" + message).length()));
+            JsonElement root = JsonParser.parseString(raw);
+            if (root.isJsonObject()) {
+                JsonObject json = root.getAsJsonObject();
+                JsonElement detail = json.has("error") ? json.get("error") : root;
+                if (detail.isJsonObject()) {
+                    JsonObject err = detail.getAsJsonObject();
+                    String type = err.has("type") && !err.get("type").isJsonNull()
+                        ? err.get("type").getAsString() : "unknown";
+                    String code = err.has("code") && !err.get("code").isJsonNull()
+                        ? err.get("code").getAsString() : "unknown";
+                    String msg = err.has("message") && !err.get("message").isJsonNull()
+                        ? err.get("message").getAsString() : "";
+                    if (!msg.isBlank()) return compact("type=" + type + " code=" + code + " message=" + msg);
+                }
+                return compact("JSON fields: " + json.keySet() + " body=" + json);
+            }
+            return compact("Server response: " + root);
         } catch (RuntimeException ignored) {
-            return "Server error body not recognized";
+            return compact("Non-JSON server response: " + raw);
         }
+    }
+
+    private static String compact(String value) {
+        String clean = value.replaceAll("[\\r\\n\\t]", " ");
+        clean = clean.replaceAll("(?i)Bearer\\s+[^\\s\\\"]+", "Bearer [redacted]");
+        clean = clean.replaceAll("(?i)(access_token|refresh_token|id_token|authorization)\\\"?\\s*[:=]\\s*\\\"?[^\\\"\\s,}]+", "$1=[redacted]");
+        return clean.substring(0, Math.min(600, clean.length()));
     }
 
     public static String ask(String token, String model, String message) throws Exception {
