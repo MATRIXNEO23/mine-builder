@@ -89,6 +89,24 @@ public final class BuildPlan {
         for (int x = 2; x < w - 2; x += 3) {
             put(cells, origin, x, 2, d - 1, glass);
         }
+        // Requested swimming pool: separate rectangular basin beside the house.
+        if (root.has("pool") && root.get("pool").getAsBoolean()) {
+            BlockState basin = Registries.BLOCK.get(new Identifier("minecraft:light_blue_concrete")).getDefaultState();
+            BlockState water = Registries.BLOCK.get(new Identifier("minecraft:water")).getDefaultState();
+            BlockState deck = Registries.BLOCK.get(new Identifier("minecraft:smooth_quartz")).getDefaultState();
+            int px = w + 4, pz = 1, pw = 7, pd = Math.max(7, d - 2);
+            for (int x = px - 1; x <= px + pw; x++)
+                for (int z = pz - 1; z <= pz + pd; z++) {
+                    boolean rim = x == px - 1 || x == px + pw || z == pz - 1 || z == pz + pd;
+                    put(cells, origin, x, 0, z, rim ? deck : water);
+                    if (!rim) {
+                        put(cells, origin, x, -1, z, water);
+                        put(cells, origin, x, -2, z, basin);
+                    }
+                    for (int y = 1; y <= 3; y++)
+                        put(cells, origin, x, y, z, air);
+                }
+        }
         List<Placement> result = new ArrayList<>();
         cells.forEach((pos, state) -> result.add(new Placement(pos, state)));
         return new BuildPlan(result);
