@@ -374,7 +374,8 @@ public final class BancoIaScreen extends Screen {
                         pendingPlan = BuildPlan.parse(json, origin);
                         lastPlan = pendingPlan;
                         lastReply = "Progetto pronto: " + pendingPlan.placements().size() + " blocchi. "
-                            + pendingPlan.geometryReport() + " Premi Costruisci.";
+                            + pendingPlan.geometryReport() + " " + pendingPlan.architectureWarnings()
+                            + " Premi Costruisci.";
                         status = Text.literal("Progetto pronto, conferma.");
                     } catch (Exception e) {
                         lastReply = "Progetto non valido (" + e.getClass().getSimpleName() + "): "
