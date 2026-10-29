@@ -24,6 +24,8 @@ public final class BancoIaScreen extends Screen {
     private TextFieldWidget blueprintSearch;
     private java.util.List<String> visibleBlueprints = java.util.List.of();
     private int blueprintPage = 0;
+    private boolean savedTab = false;
+    private boolean originalDesign = false;
     private static LoopbackRedirect pendingLogin;
     private static volatile String accessToken;
     private static volatile String selectedModel;
@@ -41,39 +43,58 @@ public final class BancoIaScreen extends Screen {
 
     @Override
     protected void init() {
-        int left = width / 2 - 150;
-        prompt = new TextFieldWidget(textRenderer, left, height / 2 - 10, 300, 20, Text.literal("Richiesta"));
-        prompt.setMaxLength(512);
-        prompt.setPlaceholder(Text.literal("Descrivi cosa vuoi costruire..."));
-        addDrawableChild(prompt);
-        addDrawableChild(ButtonWidget.builder(Text.literal("Accedi con ChatGPT"), button -> startLogin()).dimensions(left, height / 2 + 18, 145, 20).build());
-        addDrawableChild(ButtonWidget.builder(Text.literal("Invia a GPT"), button -> sendMessage())
-            .dimensions(left, height / 2 + 43, 145, 20).build());
+        int panel = Math.min(300, Math.max(180, width - 24));
+        int left = (width - panel) / 2;
+        int half = (panel - 8) / 2;
+        int top = 62;
+        addDrawableChild(ButtonWidget.builder(Text.literal(savedTab ? "Nuovo progetto" : "Nuovo progetto *"),
+            button -> { savedTab = false; clearAndInit(); })
+            .dimensions(left, top, half, 20).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal(savedTab ? "Salvati *" : "Salvati"),
+            button -> { savedTab = true; clearAndInit(); })
+            .dimensions(left + half + 8, top, half, 20).build());
+        if (!savedTab) {
+            prompt = new TextFieldWidget(textRenderer, left, top + 30, panel, 20, Text.literal("Richiesta"));
+            prompt.setMaxLength(512);
+            prompt.setPlaceholder(Text.literal("Es. Colosseo 1:1, castello originale..."));
+            addDrawableChild(prompt);
+            addDrawableChild(ButtonWidget.builder(Text.literal(originalDesign ? "Modalita: Originale" : "Modalita: Riferimenti"),
+                button -> {
+                    originalDesign = !originalDesign;
+                    button.setMessage(Text.literal(originalDesign ? "Modalita: Originale" : "Modalita: Riferimenti"));
+                }).dimensions(left, top + 56, panel, 20).build());
+            addDrawableChild(ButtonWidget.builder(Text.literal("1. Collega ChatGPT"), button -> startLogin())
+                .dimensions(left, top + 84, panel, 20).build());
+            addDrawableChild(ButtonWidget.builder(Text.literal("2. Progetta"), button -> sendMessage())
+                .dimensions(left, top + 110, half, 20).build());
+            addDrawableChild(ButtonWidget.builder(Text.literal("3. Costruisci"), button -> confirmBuild())
+                .dimensions(left + half + 8, top + 110, half, 20).build());
+            addDrawableChild(ButtonWidget.builder(Text.literal("Dettagli e controlli"), button -> openDetails())
+                .dimensions(left, top + 136, panel, 20).build());
+        } else {
+            projectName = new TextFieldWidget(textRenderer, left, top + 30, panel, 20, Text.literal("Nome progetto"));
+            projectName.setMaxLength(64);
+            projectName.setPlaceholder(Text.literal("Nome progetto da salvare..."));
+            addDrawableChild(projectName);
+            addDrawableChild(ButtonWidget.builder(Text.literal("Salva progetto"), button -> saveBlueprint())
+                .dimensions(left, top + 56, half, 20).build());
+            addDrawableChild(ButtonWidget.builder(Text.literal("Seleziona salvato"), button -> cycleBlueprint())
+                .dimensions(left + half + 8, top + 56, half, 20).build());
+            addDrawableChild(ButtonWidget.builder(Text.literal("Replica selezionato"), button -> replicateBlueprint())
+                .dimensions(left, top + 82, panel, 20).build());
+            blueprintSearch = new TextFieldWidget(textRenderer, left, top + 110, panel, 20, Text.literal("Cerca progetto"));
+            blueprintSearch.setMaxLength(64);
+            blueprintSearch.setPlaceholder(Text.literal("Filtra progetti..."));
+            addDrawableChild(blueprintSearch);
+            addDrawableChild(ButtonWidget.builder(Text.literal("Precedenti"), button -> showBlueprintPage(-1))
+                .dimensions(left, top + 136, half, 20).build());
+            addDrawableChild(ButtonWidget.builder(Text.literal("Successivi"), button -> showBlueprintPage(1))
+                .dimensions(left + half + 8, top + 136, half, 20).build());
+        }
         addDrawableChild(ButtonWidget.builder(Text.literal("Chiudi"), button -> close())
-            .dimensions(left + 155, height / 2 + 18, 145, 20).build());
-        addDrawableChild(ButtonWidget.builder(Text.literal("Costruisci"), button -> confirmBuild()).dimensions(left + 155, height / 2 + 43, 145, 20).build());
-        addDrawableChild(ButtonWidget.builder(Text.literal("Salva progetto"), button -> saveBlueprint())
-            .dimensions(left, height / 2 + 69, 145, 20).build());
-        addDrawableChild(ButtonWidget.builder(Text.literal("Elenco progetti"), button -> cycleBlueprint())
-            .dimensions(left + 155, height / 2 + 69, 145, 20).build());
-        addDrawableChild(ButtonWidget.builder(Text.literal("Replica selezionato"), button -> replicateBlueprint())
-            .dimensions(left + 155, height / 2 + 94, 145, 20).build());
-        projectName = new TextFieldWidget(textRenderer, left, height / 2 + 96, 145, 20, Text.literal("Nome progetto"));
-        projectName.setMaxLength(64);
-        projectName.setPlaceholder(Text.literal("Nome progetto..."));
-        addDrawableChild(projectName);
-        blueprintSearch = new TextFieldWidget(textRenderer, left, height / 2 + 124, 300, 20, Text.literal("Cerca progetto"));
-        blueprintSearch.setMaxLength(64);
-        blueprintSearch.setPlaceholder(Text.literal("Filtra i progetti salvati..."));
-        addDrawableChild(blueprintSearch);
-        addDrawableChild(ButtonWidget.builder(Text.literal("Precedenti"), button -> showBlueprintPage(-1))
-            .dimensions(left, height / 2 + 151, 145, 20).build());
-        addDrawableChild(ButtonWidget.builder(Text.literal("Successivi"), button -> showBlueprintPage(1))
-            .dimensions(left + 155, height / 2 + 151, 145, 20).build());
-        addDrawableChild(ButtonWidget.builder(Text.literal("Dettagli / Errori"), button -> openDetails())
-            .dimensions(width - 132, 6, 126, 20).build());
+            .dimensions(left, height - 26, panel, 20).build());
         refreshBlueprints();
-        setInitialFocus(prompt);
+        if (prompt != null && !savedTab) setInitialFocus(prompt);
     }
 
     private void saveBlueprint() {
@@ -210,7 +231,7 @@ public final class BancoIaScreen extends Screen {
             status = Text.literal("Accedi prima con ChatGPT.");
             return;
         }
-        String message = prompt.getText().trim();
+        String message = prompt == null ? "" : prompt.getText().trim();
         if (message.isEmpty()) return;
         if (message.startsWith("cerca edificio ")) {
             String name = message.substring("cerca edificio ".length()).trim();
@@ -301,7 +322,7 @@ public final class BancoIaScreen extends Screen {
         CompletableFuture.supplyAsync(() -> {
             try {
                 String enriched = request;
-                if (build) {
+                if (build && !originalDesign) {
                     String references;
                     try {
                         references = ArchitectureResearch.planningReferences(message);
@@ -312,7 +333,7 @@ public final class BancoIaScreen extends Screen {
                         + references + " Use only supported facts; do not invent measured dimensions. "
                         + "Reason about structural layout before emitting the final JSON. For amphitheatres such as the Colosseum, distinguish the elliptical footprint, concentric rings, arena, tiered seating, repeated arches, circulation and entrances. Use rings for massing and explicit detail blocks or air for openings; do not claim 1:1 accuracy without verified dimensions. This example is not a mandatory template for other requests.";
                 }
-                if (build) {
+                if (build && !originalDesign) {
                     try {
                         ArchitectureResearch.VisualReference visual = ArchitectureResearch.visualReference(message);
                         if (visual != null) {
@@ -393,7 +414,7 @@ public final class BancoIaScreen extends Screen {
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         renderBackground(context);
-        context.drawCenteredTextWithShadow(textRenderer, title, width / 2, height / 2 - 45, 0xFFFFFF);
+        context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 12, 0xFFFFFF);
         String buildError = BuildExecutor.lastError();
         String summary = !buildError.isEmpty() ? "Costruzione: " + buildError : status.getString();
         String shortSummary = textRenderer.trimToWidth(summary, Math.max(100, width - 24));
@@ -407,7 +428,7 @@ public final class BancoIaScreen extends Screen {
             for (int i = 0; i < 6 && page * 6 + i < filtered.size(); i++) {
                 String name = filtered.get(page * 6 + i);
                 context.drawTextWithShadow(textRenderer, (name.equals(selectedBlueprint) ? "> " : "  ") + name,
-                    width / 2 - 145, height / 2 + 180 + i * 12, 0xFFFFFF);
+                    width / 2 - 145, 232 + i * 12, 0xFFFFFF);
             }
         }
         super.render(context, mouseX, mouseY, delta);
