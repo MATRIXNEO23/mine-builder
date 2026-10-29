@@ -69,6 +69,8 @@ public final class BancoIaScreen extends Screen {
                 .dimensions(left, top + 110, half, 20).build());
             addDrawableChild(ButtonWidget.builder(Text.literal("3. Costruisci"), button -> confirmBuild())
                 .dimensions(left + half + 8, top + 110, half, 20).build());
+            addDrawableChild(ButtonWidget.builder(Text.literal("Recupera diario GPT"), button -> recoverJournal())
+                .dimensions(left, top + 188, panel, 20).build());
             addDrawableChild(ButtonWidget.builder(Text.literal("Riprendi costruzione"), button -> {
                 try {
                     BuildExecutor.resume(client);
@@ -213,6 +215,66 @@ public final class BancoIaScreen extends Screen {
         }
     }
 
+    private void recoverJournal() {
+        if (client == null || client.player == null || !client.isInSingleplayer()) {
+            status = Text.literal("Recupero disponibile solo in singleplayer."); return;
+        }
+        try {
+            Path root = client.getServer().getSavePath(net.minecraft.util.WorldSavePath.ROOT)
+                .resolve("minebuilder").resolve("generation-journal");
+            if (!java.nio.file.Files.isDirectory(root)) throw new java.io.IOException("Nessun diario");
+            java.util.List<Path> jobs;
+            try (var stream = java.nio.file.Files.list(root)) {
+                jobs = stream.filter(java.nio.file.Files::isDirectory)
+                    .sorted(java.util.Comparator.reverseOrder()).toList();
+            }
+            for (Path job : jobs) {
+                Path originFile = job.resolve("origin.txt");
+                if (!java.nio.file.Files.isRegularFile(originFile)) continue;
+                String[] xyz = java.nio.file.Files.readString(originFile).trim().split(",");
+                if (xyz.length != 3) continue;
+                BlockPos origin = new BlockPos(Integer.parseInt(xyz[0]),
+                    Integer.parseInt(xyz[1]), Integer.parseInt(xyz[2]));
+                java.util.List<Path> files;
+                try (var stream = java.nio.file.Files.list(job)) {
+                    files = stream.filter(p -> p.getFileName().toString().matches("[0-9]{4}\\.json"))
+                        .sorted().toList();
+                }
+                if (files.isEmpty()) continue;
+                java.util.Map<BlockPos, net.minecraft.block.BlockState> cells = new java.util.LinkedHashMap<>();
+                boolean complete = false;
+                for (int i = 0; i < files.size(); i++) {
+                    if (!files.get(i).getFileName().toString().equals(
+                            String.format(java.util.Locale.ROOT, "%04d.json", i)))
+                        throw new java.io.IOException("Pagine mancanti nel diario");
+                    String json = java.nio.file.Files.readString(files.get(i));
+                    var object = com.google.gson.JsonParser.parseString(json).getAsJsonObject();
+                    if (!object.has("complete")) throw new java.io.IOException("Pagina senza stato");
+                    if (complete) throw new java.io.IOException("Pagine successive al completamento");
+                    BuildPlan page = BuildPlan.parse(json, origin);
+                    for (var placement : page.placements()) {
+                        var old = cells.putIfAbsent(placement.pos(), placement.state());
+                        if (old != null && !old.equals(placement.state()))
+                            throw new java.io.IOException("Conflitto geometrico nel diario");
+                    }
+                    complete = object.get("complete").getAsBoolean();
+                }
+                if (!complete) {
+                    status = Text.literal("Diario parziale: " + files.size() + " pagine salvate.");
+                    return;
+                }
+                pendingPlan = BuildPlan.fromPlacements(cells.entrySet().stream()
+                    .map(e -> new BuildPlan.Placement(e.getKey(), e.getValue())).toList());
+                pendingPlan.validateSections();
+                lastPlan = pendingPlan;
+                status = Text.literal("Diario recuperato: premi Costruisci.");
+                return;
+            }
+            status = Text.literal("Nessun diario recuperabile.");
+        } catch (Exception e) {
+            status = Text.literal("Recupero diario: " + e.getMessage());
+        }
+    }
     private void confirmBuild() {
         if (pendingPlan == null || client == null) { status = Text.literal("Prima genera un progetto."); return; }
         try {
