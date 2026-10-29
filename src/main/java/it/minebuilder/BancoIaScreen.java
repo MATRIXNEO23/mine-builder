@@ -70,6 +70,8 @@ public final class BancoIaScreen extends Screen {
             .dimensions(left, height / 2 + 151, 145, 20).build());
         addDrawableChild(ButtonWidget.builder(Text.literal("Successivi"), button -> showBlueprintPage(1))
             .dimensions(left + 155, height / 2 + 151, 145, 20).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal("Dettagli / Errori"), button -> openDetails())
+            .dimensions(width - 132, 6, 126, 20).build());
         refreshBlueprints();
         setInitialFocus(prompt);
     }
@@ -340,18 +342,10 @@ public final class BancoIaScreen extends Screen {
         renderBackground(context);
         context.drawCenteredTextWithShadow(textRenderer, title, width / 2, height / 2 - 45, 0xFFFFFF);
         String buildError = BuildExecutor.lastError();
-        Text visibleStatus = buildError.isEmpty() ? status
-            : Text.literal("Costruzione: " + buildError);
-        context.drawCenteredTextWithShadow(textRenderer, visibleStatus, width / 2, height / 2 + 121,
+        String summary = !buildError.isEmpty() ? "Costruzione: " + buildError : status.getString();
+        String shortSummary = textRenderer.trimToWidth(summary, Math.max(100, width - 24));
+        context.drawCenteredTextWithShadow(textRenderer, shortSummary, width / 2, 32,
             buildError.isEmpty() ? 0xAAAAAA : 0xFF7777);
-        if (!lastReply.isEmpty()) {
-            String display = lastReply.length() > 240 ? lastReply.substring(0, 240) + "..." : lastReply;
-            int y = height / 2 + 145;
-            for (int i = 0; i < display.length(); i += 46) {
-                context.drawCenteredTextWithShadow(textRenderer, display.substring(i, Math.min(i + 46, display.length())), width / 2, y, 0xFFFFFF);
-                y += 12;
-            }
-        }
         if (blueprintSearch != null) {
             String filter = blueprintSearch.getText().trim().toLowerCase(java.util.Locale.ROOT);
             var filtered = visibleBlueprints.stream().filter(n -> n.contains(filter)).toList();
@@ -364,6 +358,58 @@ public final class BancoIaScreen extends Screen {
             }
         }
         super.render(context, mouseX, mouseY, delta);
+    }
+
+    private void openDetails() {
+        if (client == null) return;
+        String error = BuildExecutor.lastError();
+        String details = "Stato: " + status.getString() + "\\n\\n"
+            + (error.isEmpty() ? "" : "Errore costruzione: " + error + "\\n\\n")
+            + (lastReply.isEmpty() ? "Nessuna risposta ancora." : lastReply);
+        client.setScreen(new DetailsScreen(this, details));
+    }
+
+    private static final class DetailsScreen extends Screen {
+        private final Screen previous;
+        private final String details;
+        private int page;
+        private DetailsScreen(Screen previous, String details) {
+            super(Text.literal("Dettagli progetto / errori"));
+            this.previous = previous;
+            this.details = details;
+        }
+        @Override protected void init() {
+            int y = height - 28;
+            addDrawableChild(ButtonWidget.builder(Text.literal("Indietro"), b -> close())
+                .dimensions(width / 2 - 155, y, 100, 20).build());
+            addDrawableChild(ButtonWidget.builder(Text.literal("Copia testo"), b -> {
+                if (client != null) client.keyboard.setClipboard(details);
+            }).dimensions(width / 2 - 50, y, 100, 20).build());
+            addDrawableChild(ButtonWidget.builder(Text.literal("Pagina +"), b -> page++)
+                .dimensions(width / 2 + 55, y, 100, 20).build());
+        }
+        @Override public void close() {
+            if (client != null) client.setScreen(previous);
+        }
+        @Override public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+            renderBackground(context);
+            context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 12, 0xFFFFFF);
+            java.util.List<net.minecraft.text.OrderedText> lines = new java.util.ArrayList<>();
+            for (String paragraph : details.split("\\n", -1)) {
+                if (paragraph.isEmpty()) lines.add(net.minecraft.text.Text.literal(" ").asOrderedText());
+                else lines.addAll(textRenderer.wrapLines(Text.literal(paragraph), Math.max(100, width - 32)));
+            }
+            int perPage = Math.max(1, (height - 72) / 12);
+            int pages = Math.max(1, (lines.size() + perPage - 1) / perPage);
+            page = Math.floorMod(page, pages);
+            for (int i = 0; i < perPage && page * perPage + i < lines.size(); i++) {
+                context.drawTextWithShadow(textRenderer, lines.get(page * perPage + i),
+                    16, 32 + i * 12, 0xFFFFFF);
+            }
+            context.drawCenteredTextWithShadow(textRenderer,
+                "Pagina " + (page + 1) + "/" + pages, width / 2, height - 42, 0xAAAAAA);
+            super.render(context, mouseX, mouseY, delta);
+        }
     }
 
     @Override
