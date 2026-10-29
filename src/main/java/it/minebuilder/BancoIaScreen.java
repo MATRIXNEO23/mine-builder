@@ -269,7 +269,11 @@ public final class BancoIaScreen extends Screen {
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         renderBackground(context);
         context.drawCenteredTextWithShadow(textRenderer, title, width / 2, height / 2 - 45, 0xFFFFFF);
-        context.drawCenteredTextWithShadow(textRenderer, status, width / 2, height / 2 + 121, 0xAAAAAA);
+        String buildError = BuildExecutor.lastError();
+        Text visibleStatus = buildError.isEmpty() ? status
+            : Text.literal("Costruzione: " + buildError);
+        context.drawCenteredTextWithShadow(textRenderer, visibleStatus, width / 2, height / 2 + 121,
+            buildError.isEmpty() ? 0xAAAAAA : 0xFF7777);
         if (!lastReply.isEmpty()) {
             String display = lastReply.length() > 240 ? lastReply.substring(0, 240) + "..." : lastReply;
             int y = height / 2 + 145;
