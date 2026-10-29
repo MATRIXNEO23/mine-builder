@@ -381,7 +381,29 @@ public final class BancoIaScreen extends Screen {
                         + "organization, dimensions, circulation and details when generating JSON): "
                         + architecturalBrief.substring(0, Math.min(6000, architecturalBrief.length()));
                 }
-                return ChatGptInference.ask(token, model, enriched);
+                if (!build) return ChatGptInference.ask(token, model, enriched);
+                java.util.List<String> pages = new java.util.ArrayList<>();
+                String previous = "";
+                for (int page = 0; page < 8; page++) {
+                    String instruction = enriched + " This is generation page " + (page + 1)
+                        + " of at most 8. Keep the SAME architectural blueprint and coordinate origin."
+                        + " Never repeat blocks from previous pages. Previously generated summary: "
+                        + previous.substring(0, Math.min(2500, previous.length()))
+                        + " Return only JSON geometry plus mandatory boolean field complete."
+                        + " Set complete=true ONLY if the entire requested building is fully represented.";
+                    String answer = ChatGptInference.ask(token, model, instruction).trim();
+                    if (answer.startsWith("```")) {
+                        int first = answer.indexOf((char)10), last = answer.lastIndexOf("```");
+                        if (first >= 0 && last > first) answer = answer.substring(first + 1, last).trim();
+                    }
+                    com.google.gson.JsonObject object = com.google.gson.JsonParser.parseString(answer).getAsJsonObject();
+                    if (!object.has("complete") || !object.get("complete").getAsJsonPrimitive().isBoolean())
+                        throw new IllegalStateException("Risposta GPT senza indicatore di completamento");
+                    pages.add(answer);
+                    if (object.get("complete").getAsBoolean()) return "PAGED:" + String.join("##PAGE##", pages);
+                    previous += " Page " + (page + 1) + ": " + answer.substring(0, Math.min(350, answer.length()));
+                }
+                throw new IllegalStateException("Progetto oltre 8 pagine: generazione incompleta");
             } catch (Exception e) {
                 return "Errore GPT: " + e.getMessage();
             }
@@ -401,7 +423,22 @@ public final class BancoIaScreen extends Screen {
                             int end = json.lastIndexOf('}');
                             if (start >= 0 && end > start) json = json.substring(start, end + 1);
                         }
-                        pendingPlan = BuildPlan.parse(json, origin);
+                        if (json.startsWith("PAGED:")) {
+                            java.util.List<BuildPlan.Placement> combined = new java.util.ArrayList<>();
+                            java.util.Map<BlockPos, net.minecraft.block.BlockState> occupied = new java.util.HashMap<>();
+                            for (String page : json.substring(6).split("##PAGE##")) {
+                                BuildPlan part = BuildPlan.parse(page, origin);
+                                for (var placement : part.placements()) {
+                                    var existing = occupied.putIfAbsent(placement.pos(), placement.state());
+                                    if (existing != null && !existing.equals(placement.state()))
+                                        throw new IllegalArgumentException("Sezioni sovrapposte: " + placement.pos());
+                                    if (existing == null) combined.add(placement);
+                                }
+                                if (combined.size() > 2_000_000)
+                                    throw new IllegalArgumentException("Progetto oltre 2 milioni di blocchi");
+                            }
+                            pendingPlan = BuildPlan.fromPlacements(combined);
+                        } else pendingPlan = BuildPlan.parse(json, origin);
                         pendingPlan.validateSections();
                         lastPlan = pendingPlan;
                         lastReply = "Progetto pronto: " + pendingPlan.placements().size() + " blocchi. "
