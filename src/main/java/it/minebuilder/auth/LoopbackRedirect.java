@@ -4,6 +4,9 @@ import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.net.URLDecoder;
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.CompletableFuture;
 
 /** Receives a single browser redirect on the local computer. */
@@ -30,8 +33,8 @@ public final class LoopbackRedirect implements AutoCloseable {
                 for (String entry : query.split("&")) {
                     String[] parts = entry.split("=", 2);
                     if (parts.length != 2) continue;
-                    if ("state".equals(parts[0])) foundState = parts[1];
-                    if ("code".equals(parts[0])) foundCode = parts[1];
+                    if ("state".equals(parts[0])) foundState = URLDecoder.decode(parts[1], StandardCharsets.UTF_8);
+                    if ("code".equals(parts[0])) foundCode = URLDecoder.decode(parts[1], StandardCharsets.UTF_8);
                 }
                 if (receiver.expectedState.equals(foundState) && foundCode != null && !foundCode.isBlank()) {
                     receiver.code.complete(foundCode);
@@ -55,6 +58,10 @@ public final class LoopbackRedirect implements AutoCloseable {
 
     public CompletableFuture<String> authorizationCode() {
         return code;
+    }
+
+    public CompletableFuture<String> awaitCode(Duration timeout) {
+        return code.orTimeout(timeout.toMillis(), TimeUnit.MILLISECONDS);
     }
 
     @Override public void close() {
