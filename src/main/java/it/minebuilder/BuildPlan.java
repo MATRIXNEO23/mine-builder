@@ -36,7 +36,13 @@ public final class BuildPlan {
         BlockState glass = Registries.BLOCK.get(new Identifier("minecraft:glass_pane")).getDefaultState();
         BlockState air = Registries.BLOCK.get(new Identifier("minecraft:air")).getDefaultState();
         Map<BlockPos, BlockState> cells = new LinkedHashMap<>();
+        // Three-block-deep foundation: fills shallow gaps on uneven terrain.
+        // Existing artificial structures remain protected by BuildExecutor preflight.
+        BlockState foundation = Registries.BLOCK.get(
+            new Identifier("minecraft:cobblestone")).getDefaultState();
         for (int x = 0; x < w; x++) for (int z = 0; z < d; z++) {
+            for (int depth = 1; depth <= 3; depth++)
+                put(cells, origin, x, -depth, z, foundation);
             put(cells, origin, x, 0, z, floor);
             for (int y = 1; y <= h + 2; y++) put(cells, origin, x, y, z, air);
             for (int y = 1; y <= h; y++) {
