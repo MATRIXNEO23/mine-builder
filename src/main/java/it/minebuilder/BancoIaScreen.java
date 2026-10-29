@@ -124,8 +124,8 @@ public final class BancoIaScreen extends Screen {
         pendingPlan = null;
         String request = build
             ? "Generate a small Minecraft structure for: " + message
-              + ". Return ONLY JSON with a blocks array, each element has integer x,y,z and string block (minecraft:stone etc). "
-              + "Use 1-400 blocks, x/z within -16..16, y 0..16, valid vanilla blocks, no air, no markdown."
+              + ". Return ONLY compact JSON with width (5-15), depth (5-15), height (3-8), wall, roof, floor. "
+              + "Materials must be valid vanilla full-block IDs like minecraft:oak_planks and minecraft:stone_bricks. No block lists or markdown."
             : message;
         status = Text.literal("GPT sta rispondendo...");
         CompletableFuture.supplyAsync(() -> {
@@ -144,7 +144,7 @@ public final class BancoIaScreen extends Screen {
                             int last = json.lastIndexOf("```");
                             if (first >= 0 && last > first) json = json.substring(first + 1, last).trim();
                         }
-                        pendingPlan = BuildPlan.parse(json, origin);
+                        pendingPlan = BuildPlan.house(json, origin);
                         lastReply = "Progetto pronto: " + pendingPlan.placements().size() + " blocchi. Premi Costruisci.";
                         status = Text.literal("Progetto pronto, conferma.");
                     } catch (Exception e) {
