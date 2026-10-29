@@ -1,0 +1,50 @@
+package it.minebuilder;
+
+import com.google.gson.*;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.net.http.*;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.*;
+
+/** Free public Wikimedia Commons discovery; no paid API or guessed facts. */
+public final class ArchitectureResearch {
+    private static final HttpClient HTTP = HttpClient.newBuilder()
+        .connectTimeout(Duration.ofSeconds(10)).build();
+    private ArchitectureResearch() {}
+
+    public static String search(String name) throws Exception {
+        if (name == null || name.isBlank() || name.length() > 120)
+            throw new IllegalArgumentException("Invalid building name");
+        String query = URLEncoder.encode(name + " building architecture", StandardCharsets.UTF_8);
+        String url = "https://commons.wikimedia.org/w/api.php?action=query&generator=search"
+            + "&gsrsearch=" + query + "&gsrnamespace=6&gsrlimit=6"
+            + "&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=640&format=json";
+        HttpRequest request = HttpRequest.newBuilder(URI.create(url))
+            .timeout(Duration.ofSeconds(20)).header("User-Agent", "MineBuilder/0.2 (local architecture research)")
+            .GET().build();
+        HttpResponse<String> response = HTTP.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200 || response.body().length() > 1024 * 1024)
+            throw new IOException("Commons lookup unavailable");
+        JsonObject root = JsonParser.parseString(response.body()).getAsJsonObject();
+        if (!root.has("query")) return "No Wikimedia Commons images found for: " + name;
+        JsonObject pages = root.getAsJsonObject("query").getAsJsonObject("pages");
+        StringBuilder out = new StringBuilder("Wikimedia Commons results for " + name + ":\n");
+        int count = 0;
+        for (Map.Entry<String, JsonElement> item : pages.entrySet()) {
+            JsonObject page = item.getValue().getAsJsonObject();
+            if (!page.has("imageinfo")) continue;
+            JsonObject info = page.getAsJsonArray("imageinfo").get(0).getAsJsonObject();
+            String title = page.get("title").getAsString();
+            String pageUrl = "https://commons.wikimedia.org/wiki/"
+                + URLEncoder.encode(title.replace(' ', '_'), StandardCharsets.UTF_8);
+            out.append(title).append(" | ").append(pageUrl);
+            if (info.has("thumburl")) out.append(" | preview: ").append(info.get("thumburl").getAsString());
+            out.append("\n");
+            if (++count == 6) break;
+        }
+        return out.append("Search results are leads, not verified dimensions.").toString();
+    }
+}
