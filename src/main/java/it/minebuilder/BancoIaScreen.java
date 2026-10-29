@@ -384,9 +384,9 @@ public final class BancoIaScreen extends Screen {
                 if (!build) return ChatGptInference.ask(token, model, enriched);
                 java.util.List<String> pages = new java.util.ArrayList<>();
                 String previous = "";
-                for (int page = 0; page < 8; page++) {
+                for (int page = 0; page < 100; page++) {
                     String instruction = enriched + " This is generation page " + (page + 1)
-                        + " of at most 8. Keep the SAME architectural blueprint and coordinate origin."
+                        + " of a progressive architectural project. Keep the SAME architectural blueprint and coordinate origin."
                         + " Never repeat blocks from previous pages. Previously generated summary: "
                         + previous.substring(0, Math.min(2500, previous.length()))
                         + " Return only JSON geometry plus mandatory boolean field complete."
@@ -403,7 +403,7 @@ public final class BancoIaScreen extends Screen {
                     if (object.get("complete").getAsBoolean()) return "PAGED:" + String.join("##PAGE##", pages);
                     previous += " Page " + (page + 1) + ": " + answer.substring(0, Math.min(350, answer.length()));
                 }
-                throw new IllegalStateException("Progetto oltre 8 pagine: generazione incompleta");
+                throw new IllegalStateException("Progetto oltre 100 pagine: generazione sospesa in sicurezza");
             } catch (Exception e) {
                 return "Errore GPT: " + e.getMessage();
             }
