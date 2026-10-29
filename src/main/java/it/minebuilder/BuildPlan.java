@@ -191,6 +191,48 @@ public final class BuildPlan {
                     for (int dz = 0; dz < d; dz++)
                         addCell(cells, origin, x + dx, y + dy, z + dz, state);
         }
+        JsonArray shapes = root.has("shapes") ? root.getAsJsonArray("shapes") : new JsonArray();
+        if (shapes.size() > 1024) throw new IllegalArgumentException("Too many shapes");
+        for (JsonElement element : shapes) {
+            JsonObject shape = element.getAsJsonObject();
+            String type = shape.get("type").getAsString();
+            int x = shape.get("x").getAsInt(), y = shape.get("y").getAsInt(),
+                z = shape.get("z").getAsInt();
+            BlockState state = blueprintBlock(shape.get("block").getAsString());
+            if (type.equals("line")) {
+                int x2 = shape.get("x2").getAsInt(), y2 = shape.get("y2").getAsInt(),
+                    z2 = shape.get("z2").getAsInt();
+                int steps = Math.max(Math.abs(x2-x), Math.max(Math.abs(y2-y), Math.abs(z2-z)));
+                if (steps > 256) throw new IllegalArgumentException("Line too long");
+                for (int i = 0; i <= steps; i++) {
+                    double t = steps == 0 ? 0 : (double)i / steps;
+                    addCell(cells, origin, (int)Math.round(x+(x2-x)*t),
+                        (int)Math.round(y+(y2-y)*t), (int)Math.round(z+(z2-z)*t), state);
+                }
+            } else if (type.equals("sphere") || type.equals("ellipsoid") || type.equals("cylinder")) {
+                int rx = shape.get("rx").getAsInt();
+                int ry = shape.has("ry") ? shape.get("ry").getAsInt() : rx;
+                int rz = shape.has("rz") ? shape.get("rz").getAsInt() : rx;
+                if (rx < 1 || ry < 1 || rz < 1 || rx > 64 || ry > 64 || rz > 64)
+                    throw new IllegalArgumentException("Invalid shape radius");
+                boolean hollow = shape.has("hollow") && shape.get("hollow").getAsBoolean();
+                for (int dx=-rx; dx<=rx; dx++)
+                    for (int dy=-ry; dy<=ry; dy++)
+                        for (int dz=-rz; dz<=rz; dz++) {
+                            double distance = (double)dx*dx/(rx*rx) + (double)dz*dz/(rz*rz);
+                            if (!type.equals("cylinder")) distance += (double)dy*dy/(ry*ry);
+                            if (distance > 1.0) continue;
+                            if (hollow) {
+                                double inner = (double)dx*dx/Math.max(1,(rx-1)*(rx-1))
+                                    + (double)dz*dz/Math.max(1,(rz-1)*(rz-1));
+                                if (!type.equals("cylinder"))
+                                    inner += (double)dy*dy/Math.max(1,(ry-1)*(ry-1));
+                                if (inner <= 1.0 && (type.equals("cylinder") || Math.abs(dy)<ry)) continue;
+                            }
+                            addCell(cells, origin, x+dx, y+dy, z+dz, state);
+                        }
+            } else throw new IllegalArgumentException("Unknown shape: " + type);
+        }
         for (JsonElement element : blocks) {
             JsonObject b = element.getAsJsonObject();
             addCell(cells, origin, b.get("x").getAsInt(), b.get("y").getAsInt(),
