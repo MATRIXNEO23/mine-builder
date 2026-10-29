@@ -24,7 +24,7 @@ public final class LoopbackRedirect implements AutoCloseable {
         if (state == null || state.isBlank()) throw new IllegalArgumentException("state required");
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 1);
         LoopbackRedirect receiver = new LoopbackRedirect(server, state);
-        server.createContext("/callback", exchange -> {
+        server.createContext("/auth/callback", exchange -> {
             String query = exchange.getRequestURI().getRawQuery();
             boolean accepted = false;
             if ("GET".equals(exchange.getRequestMethod()) && query != null) {
@@ -53,7 +53,7 @@ public final class LoopbackRedirect implements AutoCloseable {
     }
 
     public String redirectUri() {
-        return "http://127.0.0.1:" + server.getAddress().getPort() + "/callback";
+        return "http://127.0.0.1:" + server.getAddress().getPort() + "/auth/callback";
     }
 
     public CompletableFuture<String> authorizationCode() {
