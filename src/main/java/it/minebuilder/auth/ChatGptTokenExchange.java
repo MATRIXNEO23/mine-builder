@@ -41,6 +41,8 @@ public final class ChatGptTokenExchange {
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject();
         if (!result.has("id_token") || !result.has("access_token"))
             throw new IOException("OAuth token response incomplete");
+        if (!result.has("scope") || !java.util.Arrays.asList(result.get("scope").getAsString().split(" ")).contains("chatgpt.tokens.use.direct"))
+            throw new IOException("ChatGPT plan inference permission was not granted");
         return result;
     }
 
