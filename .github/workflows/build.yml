@@ -7,7 +7,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -29,3 +29,18 @@ jobs:
           name: mine-builder-fabric-1.20.1
           path: build/libs/*.jar
           if-no-files-found: error
+      - name: Prepare downloadable JAR
+        run: |
+          JAR=$(find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar' ! -name '*-dev.jar' | head -n 1)
+          test -n "$JAR"
+          cp "$JAR" Mine-Builder-v0.1.0-Minecraft-1.20.1-Fabric.jar
+      - name: Publish latest test build to GitHub Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG=mine-builder-latest
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" Mine-Builder-v0.1.0-Minecraft-1.20.1-Fabric.jar --clobber
+          else
+            gh release create "$TAG" Mine-Builder-v0.1.0-Minecraft-1.20.1-Fabric.jar --title "Mine Builder - ultima build di test" --notes "Build di test per Minecraft 1.20.1 Fabric. Il collegamento GPT non è ancora operativo." --prerelease --target "$GITHUB_SHA"
+          fi
