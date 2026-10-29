@@ -172,7 +172,7 @@ public final class BuildExecutor {
                 if (pending.isEmpty()) {
                     try {
                         // Persist world changes before advancing the checkpoint.
-                        world.getChunkManager().save(true, false);
+                        world.getChunkManager().save(true);
                         saveProgress(client, worldKey, completedSections + 1);
                         completedSections++;
                     } catch (IOException e) {
