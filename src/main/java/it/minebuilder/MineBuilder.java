@@ -39,7 +39,8 @@ public final class MineBuilder implements ModInitializer {
         Identifier id = new Identifier(MOD_ID, "banco_ia");
         Registry.register(Registries.BLOCK, id, BANCO_IA);
         Registry.register(Registries.ITEM, id, new BlockItem(BANCO_IA, new Item.Settings()));
-        ItemGroupEvents.modifyEntriesEvent(ItemGroups.FUNCTIONAL).register(entries -> entries.add(BANCO_IA));
+        ItemGroupEvents.modifyEntriesEvent(ItemGroups.FUNCTIONAL).register(entries -> entries.add(Registries.ITEM.get(id)));
+        ItemGroupEvents.modifyEntriesEvent(ItemGroups.SEARCH).register(entries -> entries.add(Registries.ITEM.get(id)));
         LOGGER.info("Mine Builder: Banco IA registered; GPT connection not yet configured.");
     }
 }
