@@ -171,25 +171,51 @@ public final class BuildPlan {
         return Registries.BLOCK.get(id).getDefaultState();
     }
 
+    /** Universal compact geometry format: blocks and cuboids, independent of object type. */
     public static BuildPlan parse(String json, BlockPos origin) {
         JsonObject root = JsonParser.parseString(json).getAsJsonObject();
-        JsonArray blocks = root.getAsJsonArray("blocks");
-        if (blocks == null || blocks.size() == 0 || blocks.size() > 20000)
-            throw new IllegalArgumentException("Blueprint must contain 1-20000 blocks");
-        List<Placement> result = new ArrayList<>();
-        Set<BlockPos> unique = new HashSet<>();
+        Map<BlockPos, BlockState> cells = new LinkedHashMap<>();
+        JsonArray blocks = root.has("blocks") ? root.getAsJsonArray("blocks") : new JsonArray();
+        JsonArray cuboids = root.has("cuboids") ? root.getAsJsonArray("cuboids") : new JsonArray();
+        if (blocks.size() > 20000 || cuboids.size() > 1024)
+            throw new IllegalArgumentException("Blueprint input too large");
+        for (JsonElement element : cuboids) {
+            JsonObject c = element.getAsJsonObject();
+            int x = c.get("x").getAsInt(), y = c.get("y").getAsInt(), z = c.get("z").getAsInt();
+            int w = c.get("w").getAsInt(), h = c.get("h").getAsInt(), d = c.get("d").getAsInt();
+            if (w < 1 || h < 1 || d < 1 || (long)w*h*d > 20000)
+                throw new IllegalArgumentException("Invalid cuboid dimensions");
+            BlockState state = blueprintBlock(c.get("block").getAsString());
+            for (int dx = 0; dx < w; dx++)
+                for (int dy = 0; dy < h; dy++)
+                    for (int dz = 0; dz < d; dz++)
+                        addCell(cells, origin, x + dx, y + dy, z + dz, state);
+        }
         for (JsonElement element : blocks) {
             JsonObject b = element.getAsJsonObject();
-            int x = b.get("x").getAsInt(), y = b.get("y").getAsInt(), z = b.get("z").getAsInt();
-            if (Math.abs(x) > 128 || y < -32 || y > 128 || Math.abs(z) > 128)
-                throw new IllegalArgumentException("Blueprint exceeds safe bounds");
-            Identifier id = Identifier.tryParse(b.get("block").getAsString());
-            if (id == null || !Registries.BLOCK.containsId(id) || id.toString().equals("minecraft:air"))
-                throw new IllegalArgumentException("Invalid block ID");
-            BlockPos pos = origin.add(x, y, z);
-            if (!unique.add(pos)) throw new IllegalArgumentException("Duplicate placement");
-            result.add(new Placement(pos, Registries.BLOCK.get(id).getDefaultState()));
+            addCell(cells, origin, b.get("x").getAsInt(), b.get("y").getAsInt(),
+                b.get("z").getAsInt(), blueprintBlock(b.get("block").getAsString()));
         }
-        return new BuildPlan(result);
+        if (cells.isEmpty()) throw new IllegalArgumentException("Empty blueprint");
+        return fromPlacements(cells.entrySet().stream()
+            .map(e -> new Placement(e.getKey(), e.getValue())).toList());
+    }
+
+    private static BlockState blueprintBlock(String name) {
+        Identifier id = Identifier.tryParse(name);
+        if (id == null || !Registries.BLOCK.containsId(id))
+            throw new IllegalArgumentException("Invalid block ID: " + name);
+        return Registries.BLOCK.get(id).getDefaultState();
+    }
+
+    private static void addCell(Map<BlockPos, BlockState> cells, BlockPos origin,
+                                int x, int y, int z, BlockState state) {
+        if (Math.abs(x) > 128 || y < -32 || y > 128 || Math.abs(z) > 128)
+            throw new IllegalArgumentException("Blueprint exceeds safe bounds");
+        BlockPos pos = origin.add(x, y, z);
+        if (cells.put(pos, state) != null)
+            throw new IllegalArgumentException("Overlapping geometry at " + pos.toShortString());
+        if (cells.size() > 20000)
+            throw new IllegalArgumentException("Blueprint exceeds 20000 blocks");
     }
 }
