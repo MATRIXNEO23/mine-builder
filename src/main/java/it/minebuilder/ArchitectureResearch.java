@@ -15,6 +15,46 @@ public final class ArchitectureResearch {
         .connectTimeout(Duration.ofSeconds(10)).build();
     private ArchitectureResearch() {}
 
+    /** One bounded public thumbnail, downloaded only from Wikimedia's own image host. */
+    public record VisualReference(String title, byte[] image, String mime) {}
+
+    public static VisualReference visualReference(String request) throws Exception {
+        if (request == null || request.isBlank()) return null;
+        String clean = request.replaceAll("[\\r\\n\\t]", " ").trim();
+        if (clean.length() > 100) clean = clean.substring(0, 100);
+        for (String suffix : new String[]{" floor plan architecture", " architectural exterior"}) {
+            String query = URLEncoder.encode(clean + suffix, StandardCharsets.UTF_8);
+            String url = "https://commons.wikimedia.org/w/api.php?action=query&generator=search"
+                + "&gsrsearch=" + query + "&gsrnamespace=6&gsrlimit=6"
+                + "&prop=imageinfo&iiprop=url&iiurlwidth=640&format=json";
+            HttpRequest requestHttp = HttpRequest.newBuilder(URI.create(url))
+                .timeout(Duration.ofSeconds(15)).header("User-Agent", "MineBuilder/0.2")
+                .GET().build();
+            HttpResponse<String> response = HTTP.send(requestHttp, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200 || response.body().length() > 1024 * 1024) continue;
+            JsonObject root = JsonParser.parseString(response.body()).getAsJsonObject();
+            if (!root.has("query") || !root.getAsJsonObject("query").has("pages")) continue;
+            for (JsonElement element : root.getAsJsonObject("query").getAsJsonObject("pages").asMap().values()) {
+                JsonObject page = element.getAsJsonObject();
+                if (!page.has("imageinfo")) continue;
+                JsonObject info = page.getAsJsonArray("imageinfo").get(0).getAsJsonObject();
+                if (!info.has("thumburl")) continue;
+                URI uri = URI.create(info.get("thumburl").getAsString());
+                if (!"https".equals(uri.getScheme()) || !"upload.wikimedia.org".equals(uri.getHost())) continue;
+                String path = uri.getPath().toLowerCase(Locale.ROOT);
+                String mime = path.endsWith(".png") ? "image/png"
+                    : path.endsWith(".jpg") || path.endsWith(".jpeg") ? "image/jpeg" : null;
+                if (mime == null) continue;
+                HttpRequest imageRequest = HttpRequest.newBuilder(uri).timeout(Duration.ofSeconds(20))
+                    .header("User-Agent", "MineBuilder/0.2").GET().build();
+                HttpResponse<byte[]> img = HTTP.send(imageRequest, HttpResponse.BodyHandlers.ofByteArray());
+                if (img.statusCode() == 200 && img.body().length > 0 && img.body().length <= 4 * 1024 * 1024)
+                    return new VisualReference(page.get("title").getAsString(), img.body(), mime);
+            }
+        }
+        return null;
+    }
+
     /** Reference discovery for the planning stage. Metadata only: never claim visual analysis. */
     public static String planningReferences(String request) throws Exception {
         if (request == null || request.isBlank()) return "No reference query.";
