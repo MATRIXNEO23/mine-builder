@@ -26,7 +26,11 @@ public final class MineBuilderClient implements ClientModInitializer {
                     && BancoIaScreen.hasPlacementPlan()) {
                 BuildPlan plan = BancoIaScreen.takePlacementPlan();
                 BlockPos anchor = hit.getBlockPos().offset(hit.getSide());
-                BlockPos first = plan.placements().get(0).pos();
+                BlockPos first = plan.placements().stream()
+                    .map(BuildPlan.Placement::pos)
+                    .min(java.util.Comparator.comparingInt(BlockPos::getY)
+                        .thenComparingInt(BlockPos::getX).thenComparingInt(BlockPos::getZ))
+                    .orElseThrow();
                 int dx = anchor.getX() - first.getX();
                 int dy = anchor.getY() - first.getY();
                 int dz = anchor.getZ() - first.getZ();
