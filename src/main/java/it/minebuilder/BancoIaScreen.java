@@ -283,7 +283,7 @@ public final class BancoIaScreen extends Screen {
               + ". You are a universal block architect, NOT a house generator. "
               + "Return ONLY JSON {\"blocks\":[{\"x\":0,\"y\":0,\"z\":0,\"block\":\"minecraft:stone\"}]}. "
               + "You may return arrays blocks, cuboids, shapes. A block is {x,y,z,block}; a cuboid is {x,y,z,w,h,d,block}; a shape is a line {type:line,x,y,z,x2,y2,z2,block} or sphere/ellipsoid/cylinder {type:sphere,x,y,z,rx,ry,rz,block,hollow:false}. "
-              + "Use compact primitives for volumes, branches, canopies, curves and details; do not overlap primitives. All coordinates relative to origin and valid Minecraft 1.20.1 block IDs. "
+              + "Use compact primitives for volumes and shapes; avoid overlapping primitives with different materials. Explicit blocks are a final detail layer and override primitive geometry for doors, windows, openings, stairs, roof trim and decorations. Do not give two different explicit blocks at the same coordinate. All coordinates relative to origin and valid Minecraft 1.20.1 block IDs. "
               + "Use the full Minecraft 1.20.1 palette: stairs, slabs, walls, fences, panes, trapdoors, doors, logs, terracotta, concrete and decorative blocks to reproduce silhouettes, texture, shading, fine trim, arches, roofs and realistic visual effects. "
               + "For directional or partial blocks encode exact block states as block strings, e.g. minecraft:stone_brick_stairs[facing=north,half=bottom], minecraft:stone_brick_slab[type=top], minecraft:oak_log[axis=x]. "
               + "Choose valid state values for each block; connect adjoining elements visually, and ensure stair and door orientations make sense. Prefer nuanced architectural details over featureless full-block walls. "
@@ -326,7 +326,7 @@ public final class BancoIaScreen extends Screen {
                         status = Text.literal("Progetto pronto, conferma.");
                     } catch (Exception e) {
                         lastReply = "Progetto non valido (" + e.getClass().getSimpleName() + "): "
-                            + e.getMessage() + ". Riprova specificando dimensioni e dettagli.";
+                            + e.getMessage() + ". Controlla la geometria e il JSON; usa Dettagli / Errori per copiare il messaggio.";
                         status = Text.literal("Progetto non valido.");
                     }
                 } else {
