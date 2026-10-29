@@ -145,6 +145,36 @@ public final class BancoIaScreen extends Screen {
             }
             return;
         }
+        if (message.startsWith("analizza immagine ")) {
+            String filename = message.substring("analizza immagine ".length()).trim();
+            if (!filename.matches("[a-zA-Z0-9_-]{1,64}\\.(png|jpg|jpeg)")) {
+                status = Text.literal("Nome immagine non valido."); return;
+            }
+            Path file = net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir()
+                .resolve("minebuilder").resolve("references").resolve("images").resolve(filename);
+            status = Text.literal("Analisi visiva in corso...");
+            CompletableFuture.supplyAsync(() -> {
+                try {
+                    if (!java.nio.file.Files.isRegularFile(file)
+                        || java.nio.file.Files.size(file) > 4 * 1024 * 1024)
+                        throw new java.io.IOException("Immagine assente o troppo grande");
+                    byte[] bytes = java.nio.file.Files.readAllBytes(file);
+                    String mime = filename.endsWith(".png") ? "image/png" : "image/jpeg";
+                    return ChatGptInference.askWithImage(token, model,
+                        "Analyze this architectural photo or floor plan in Italian. "
+                        + "Describe visible shapes, materials, openings and dimensions. "
+                        + "Separate observed facts from estimates and unknowns. "
+                        + "Never invent measurements or claim exact 1:1 fidelity.",
+                        bytes, mime);
+                } catch (Exception e) { return "Analisi non riuscita: " + e.getMessage(); }
+            }).thenAccept(result -> {
+                if (client != null) client.execute(() -> {
+                    lastReply = result;
+                    status = Text.literal("Analisi visiva terminata.");
+                });
+            });
+            return;
+        }
         boolean build = message.toLowerCase(java.util.Locale.ROOT).matches("(?s).*(costruisc|edific|crea una cas|build |realizza una struttur|ricostruisc|riproduci).*");
         if (build && (client == null || client.player == null || !client.isInSingleplayer())) {
             status = Text.literal("Solo mondi singleplayer."); return;
