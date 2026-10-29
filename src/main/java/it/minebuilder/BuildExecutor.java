@@ -315,6 +315,18 @@ public final class BuildExecutor {
         lastError = "";
     }
 
+    /** Only true after all sections were verified and their progress saved. */
+    public static boolean finished() {
+        return ownerServer != null && !inFlight && pending.isEmpty()
+            && remainingSections.isEmpty() && completedSections == totalSections
+            && totalSections > 0 && lastError.isEmpty();
+    }
+
+    /** Exposes active execution state without allowing another job to overwrite it. */
+    public static boolean busy() {
+        return inFlight || !pending.isEmpty() || !remainingSections.isEmpty();
+    }
+
     public static String lastError() { return lastError; }
     public static boolean preflightPassed() { return preflightDone; }
     public static int remaining() { return pending.size() + remainingSections.stream()
