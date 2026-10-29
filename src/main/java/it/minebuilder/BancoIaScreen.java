@@ -116,6 +116,21 @@ public final class BancoIaScreen extends Screen {
         }
         String message = prompt.getText().trim();
         if (message.isEmpty()) return;
+        if (message.startsWith("riferimento ")) {
+            String id = message.substring("riferimento ".length()).trim();
+            try {
+                var ref = ReferenceCatalog.load(
+                    net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir(), id);
+                lastReply = "Riferimento: " + ref.name() + ", "
+                    + ref.width() + " x " + ref.depth() + " x " + ref.height()
+                    + " metri. Fonte: " + ref.source();
+                status = Text.literal("Misure locali caricate; ricostruzione non ancora disponibile.");
+            } catch (Exception e) {
+                status = Text.literal("Riferimento non disponibile o non valido.");
+                lastReply = e.getMessage();
+            }
+            return;
+        }
         boolean build = message.toLowerCase(java.util.Locale.ROOT).matches("(?s).*(costruisc|edific|crea una cas|build |realizza una struttur|ricostruisc|riproduci).*");
         if (build && (client == null || client.player == null || !client.isInSingleplayer())) {
             status = Text.literal("Solo mondi singleplayer."); return;
