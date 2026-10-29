@@ -174,14 +174,14 @@ public final class BuildPlan {
     public static BuildPlan parse(String json, BlockPos origin) {
         JsonObject root = JsonParser.parseString(json).getAsJsonObject();
         JsonArray blocks = root.getAsJsonArray("blocks");
-        if (blocks == null || blocks.size() == 0 || blocks.size() > 512)
-            throw new IllegalArgumentException("Blueprint must contain 1-512 blocks");
+        if (blocks == null || blocks.size() == 0 || blocks.size() > 20000)
+            throw new IllegalArgumentException("Blueprint must contain 1-20000 blocks");
         List<Placement> result = new ArrayList<>();
         Set<BlockPos> unique = new HashSet<>();
         for (JsonElement element : blocks) {
             JsonObject b = element.getAsJsonObject();
             int x = b.get("x").getAsInt(), y = b.get("y").getAsInt(), z = b.get("z").getAsInt();
-            if (Math.abs(x) > 32 || y < 0 || y > 32 || Math.abs(z) > 32)
+            if (Math.abs(x) > 128 || y < -32 || y > 128 || Math.abs(z) > 128)
                 throw new IllegalArgumentException("Blueprint exceeds safe bounds");
             Identifier id = Identifier.tryParse(b.get("block").getAsString());
             if (id == null || !Registries.BLOCK.containsId(id) || id.toString().equals("minecraft:air"))
