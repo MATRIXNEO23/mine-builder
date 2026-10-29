@@ -60,7 +60,7 @@ public final class BancoIaScreen extends Screen {
                         }
                     }).thenAccept(message -> {
                         if (client != null) client.execute(() -> {
-                            if (pendingLogin == receiver) status = Text.literal(message);
+                            status = Text.literal(message);
                         });
                     });
                 }
