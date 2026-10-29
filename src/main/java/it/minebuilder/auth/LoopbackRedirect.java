@@ -14,6 +14,9 @@ public final class LoopbackRedirect implements AutoCloseable {
     private final HttpServer server;
     private final String expectedState;
     private final CompletableFuture<String> code = new CompletableFuture<>();
+    private final CompletableFuture<Callback> callback = new CompletableFuture<>();
+
+    public record Callback(String code, String clientId) {}
 
     private LoopbackRedirect(HttpServer server, String state) {
         this.server = server;
@@ -30,13 +33,16 @@ public final class LoopbackRedirect implements AutoCloseable {
             if ("GET".equals(exchange.getRequestMethod()) && query != null) {
                 String foundState = null;
                 String foundCode = null;
+                String foundClientId = null;
                 for (String entry : query.split("&")) {
                     String[] parts = entry.split("=", 2);
                     if (parts.length != 2) continue;
                     if ("state".equals(parts[0])) foundState = URLDecoder.decode(parts[1], StandardCharsets.UTF_8);
                     if ("code".equals(parts[0])) foundCode = URLDecoder.decode(parts[1], StandardCharsets.UTF_8);
+                    if ("client_id".equals(parts[0])) foundClientId = URLDecoder.decode(parts[1], StandardCharsets.UTF_8);
                 }
                 if (receiver.expectedState.equals(foundState) && foundCode != null && !foundCode.isBlank()) {
+                    receiver.callback.complete(new Callback(foundCode, foundClientId));
                     receiver.code.complete(foundCode);
                     accepted = true;
                 }
@@ -58,6 +64,10 @@ public final class LoopbackRedirect implements AutoCloseable {
 
     public CompletableFuture<String> authorizationCode() {
         return code;
+    }
+
+    public CompletableFuture<Callback> awaitCallback(Duration timeout) {
+        return callback.orTimeout(timeout.toMillis(), TimeUnit.MILLISECONDS);
     }
 
     public CompletableFuture<String> awaitCode(Duration timeout) {
