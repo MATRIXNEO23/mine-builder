@@ -1,5 +1,7 @@
 # Mine Builder
 
+> **ISTRUZIONI PER NUOVE ISTANZE / RIPRESA LAVORO:** Prima di modificare il codice o dichiarare lo stato del progetto, leggere [AGENTS.md](AGENTS.md) e nell'ordine [continuity/PROTOCOL.md](continuity/PROTOCOL.md), [continuity/STATE.md](continuity/STATE.md), [continuity/CHECKPOINTS.md](continuity/CHECKPOINTS.md) e [continuity/HANDOFF.md](continuity/HANDOFF.md). Verificare HEAD, file e test effettivi. Non ricominciare da zero né inventare funzionalità completate. Quando l'utente scrive **«fine istanza»**, eseguire la procedura di checkpoint GitHub e fornire il prompt per riaprire la nuova istanza. La procedura richiede una sessione attiva con accesso a GitHub; non gira autonomamente fra le chat.
+
 Mod sperimentale per Minecraft Java Edition **1.20.1 / Fabric / Java 17**, avviata tramite Prism Launcher.
 
 ## Scopo
@@ -39,7 +41,7 @@ In entrambe le modalità l'esecutore costruisce automaticamente a sezioni, con s
 - **Obiettivi successivi:** San Siro e San Vendemiano, in scala 1:1, con riferimenti leciti (es. OpenStreetMap e fotografie riutilizzabili).
 
 ## Verifiche ancora necessarie
-Il collegamento Minecraft–GPT non è ancora implementato né collaudato sul PC dell'utente. Il primo test deve verificare il consenso al piano ChatGPT e la ricezione di un evento response.completed dalla Responses API per un modello dell'account; store=false e stream=true sono obbligatori. Il login da solo non dimostra l'accesso all'inferenza, né garantisce web search. Il test tecnico predisposto in scripts/gpt-plan-smoke-test.mjs richiede un token OAuth ottenuto dal futuro bridge locale, mai una chiave API. Nessun token o credenziale deve essere copiato in GitHub o nella chat.
+Il collegamento Minecraft–GPT non è ancora implementato né collaudato sul PC dell'utente. Il primo test deve verificare il consenso al piano ChatGPT e la ricezione di un evento response.completed dalla Responses API per un modello dell'account; store=false e stream=true sono obbligatori. Il login da solo non dimostra l'accesso all'inferenza, né garantisce web search. Il test tecnico predisposto in [scripts/verify-plan-sharing.mjs](scripts/verify-plan-sharing.mjs) richiede un client locale già autenticato tramite OAuth; il bridge non è ancora implementato e il codice non è stato eseguito. Nessun token o credenziale deve essere copiato in GitHub o nella chat.
 
 Per il Banco IA, il motore scelto è GPT. Codex rimane soltanto un'eventuale opzione futura.
 
