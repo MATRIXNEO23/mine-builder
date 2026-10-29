@@ -56,7 +56,8 @@ public final class BuildExecutor {
                         if (!world.isChunkLoaded(target)) return;
                         var existing = world.getBlockState(target);
                         if (!existing.isAir() && !existing.equals(candidate.state())
-                            && !isNaturalTerrain(existing)) {
+                            && !isNaturalTerrain(existing)
+                            && !isTreeTrunk(world, target, existing)) {
                             lastError = "Area occupata: " + target.toShortString();
                             cancel();
                             return;
@@ -79,7 +80,8 @@ public final class BuildExecutor {
                     // a block after preflight while the build was progressing.
                     var current = world.getBlockState(pos);
                     if (!current.isAir() && !current.equals(entry.state())
-                            && !isNaturalTerrain(current)) {
+                            && !isNaturalTerrain(current)
+                            && !isTreeTrunk(world, pos, current)) {
                         lastError = "Costruzione interrotta: blocco protetto in " + pos.toShortString();
                         cancel();
                         return;
@@ -120,6 +122,25 @@ public final class BuildExecutor {
             || state.isOf(Blocks.SAND) || state.isOf(Blocks.RED_SAND)
             || state.isOf(Blocks.CLAY) || state.isOf(Blocks.SNOW)
             || state.isOf(Blocks.SNOW_BLOCK) || state.isOf(Blocks.MOSS_BLOCK);
+    }
+
+    /** Only replace natural logs when a nearby leaf canopy is confirmed.
+     * Logs used in ordinary buildings remain protected without this evidence.
+     */
+    private static boolean isTreeTrunk(net.minecraft.server.world.ServerWorld world,
+                                       BlockPos pos, BlockState state) {
+        if (!state.isIn(BlockTags.LOGS)) return false;
+        for (int dy = 0; dy <= 8; dy++) {
+            for (int dx = -2; dx <= 2; dx++) {
+                for (int dz = -2; dz <= 2; dz++) {
+                    BlockPos sample = pos.add(dx, dy, dz);
+                    if (world.isChunkLoaded(sample)
+                        && world.getBlockState(sample).isIn(BlockTags.LEAVES))
+                        return true;
+                }
+            }
+        }
+        return false;
     }
 
     public static String lastError() { return lastError; }
