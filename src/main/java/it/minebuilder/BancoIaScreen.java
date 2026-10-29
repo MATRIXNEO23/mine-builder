@@ -393,14 +393,16 @@ public final class BancoIaScreen extends Screen {
                             if (start >= 0 && end > start) json = json.substring(start, end + 1);
                         }
                         pendingPlan = BuildPlan.parse(json, origin);
+                        pendingPlan.validateSections();
                         lastPlan = pendingPlan;
                         lastReply = "Progetto pronto: " + pendingPlan.placements().size() + " blocchi. "
+                            + " Sezioni 16x16 validate: " + pendingPlan.sections().size() + ". "
                             + pendingPlan.geometryReport() + " " + pendingPlan.architectureWarnings()
                             + " Premi Costruisci.";
                         status = Text.literal("Progetto pronto, conferma.");
                     } catch (Exception e) {
                         lastReply = "Progetto non valido (" + e.getClass().getSimpleName() + "): "
-                            + e.getMessage() + ". Controlla la geometria e il JSON; usa Dettagli / Errori per copiare il messaggio.";
+                            + e.getMessage() + ". Controlla la geometria e il JSON; usa Dettagli e controlli per copiare il messaggio.";
                         status = Text.literal("Progetto non valido.");
                     }
                 } else {
