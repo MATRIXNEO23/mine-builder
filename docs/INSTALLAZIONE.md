@@ -28,3 +28,12 @@
 - [ ] Test costruzione, salvataggio e ripresa.
 
 **Importante:** non modificare i mondi esistenti né installare programmi non ancora verificati. Le istruzioni definitive potranno essere aggiornate dopo la prima build reale.
+## Download permanente e versioni
+
+Le build temporanee di GitHub Actions **non sono l'archivio permanente**. Ogni versione pubblicata tramite tag Git `vX.Y.Z` usa il workflow `.github/workflows/release.yml`: dopo test e compilazione riusciti, carica il file `Mine-Builder-vX.Y.Z-Minecraft-1.20.1-Fabric.jar` nella pagina GitHub **Releases** e aggiunge `SHA256SUMS.txt` per verificare l'integrità.
+
+**Cartella stabile di download:** https://github.com/MATRIXNEO23/mine-builder/releases
+
+Le versioni precedenti restano consultabili nelle Releases finché non vengono cancellate da un amministratore del repository. La pubblicazione non è ancora stata eseguita né la compilazione confermata; non installare file non verificati.
+
+Per installare: scaricare il JAR dalla Release desiderata, aprire Prism Launcher → Modifica istanza → Mod → Aggiungi mod, scegliere il JAR. Conservare una copia locale se si desidera una seconda copia di sicurezza. La Release non si crea automaticamente a ogni push: serve un tag di versione coerente con `gradle.properties`.
