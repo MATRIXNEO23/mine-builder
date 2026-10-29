@@ -24,3 +24,9 @@ Zero costi aggiuntivi; niente API key a consumo o fallback a pagamento. Non inse
 2. Consultare documentazione ufficiale aggiornata di Sign in with ChatGPT; implementare bridge OAuth locale usando soltanto interfacce documentate, senza inventare endpoint o token.
 3. Testare login autorizzato e inferenza reale con consenso utente e senza crediti extra.
 4. Realizzare Banco IA e GUI dopo il gate tecnico; aggiornare checkpoint dopo milestone verificata.
+
+## Archivio permanente versioni — 29 ottobre 2026
+- Aggiunto `.github/workflows/release.yml` per pubblicare JAR con nome versione e SHA256SUMS nelle GitHub Releases su tag vX.Y.Z, solo dopo test/build.
+- Documentato in `docs/INSTALLAZIONE.md`. Commit release workflow: `85feacaede0d6a96999dd705ff2128f022199a73`.
+- **Nessuna Release o JAR pubblicati/verificati ancora**; Actions artifact temporaneo non equivale a Release.
+- URL permanente elenco versioni: https://github.com/MATRIXNEO23/mine-builder/releases
