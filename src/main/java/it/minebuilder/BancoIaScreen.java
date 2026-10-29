@@ -116,6 +116,20 @@ public final class BancoIaScreen extends Screen {
         }
         String message = prompt.getText().trim();
         if (message.isEmpty()) return;
+        if (message.startsWith("cerca edificio ")) {
+            String name = message.substring("cerca edificio ".length()).trim();
+            status = Text.literal("Ricerca in corso...");
+            CompletableFuture.supplyAsync(() -> {
+                try { return ArchitectureResearch.search(name); }
+                catch (Exception e) { return "Ricerca non riuscita: " + e.getMessage(); }
+            }).thenAccept(result -> {
+                if (client != null) client.execute(() -> {
+                    lastReply = result;
+                    status = Text.literal("Ricerca completata.");
+                });
+            });
+            return;
+        }
         if (message.startsWith("riferimento ")) {
             String id = message.substring("riferimento ".length()).trim();
             try {
