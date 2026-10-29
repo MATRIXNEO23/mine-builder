@@ -154,6 +154,19 @@ public final class BancoIaScreen extends Screen {
     }
 
     private void sendMessage() {
+        String localRequest = prompt.getText().trim().toLowerCase(java.util.Locale.ROOT);
+        if ((localRequest.contains("ciliegio") || localRequest.contains("cherry tree"))
+                && (localRequest.contains("albero") || localRequest.contains("tree"))) {
+            if (client == null || client.player == null || !client.isInSingleplayer()) {
+                status = Text.literal("Solo mondi singleplayer."); return;
+            }
+            pendingPlan = BuildPlan.cherryTree(client.player.getBlockPos().add(12, 0, 12));
+            lastPlan = pendingPlan;
+            lastReply = "Albero di ciliegio gigante pronto: "
+                + pendingPlan.placements().size() + " blocchi. Premi Costruisci.";
+            status = Text.literal("Progetto albero pronto, conferma.");
+            return;
+        }
         String token = accessToken;
         String model = selectedModel;
         if (token == null || model == null) {
