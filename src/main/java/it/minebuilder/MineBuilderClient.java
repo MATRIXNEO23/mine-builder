@@ -17,6 +17,7 @@ public final class MineBuilderClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         ClientTickEvents.END_CLIENT_TICK.register(BuildExecutor::tick);
+        ClientTickEvents.END_CLIENT_TICK.register(ProgressiveBuild::tick);
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (!awaitingPreflight) return;
             if (BuildExecutor.preflightPassed()) {
