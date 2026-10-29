@@ -50,26 +50,34 @@ public final class BancoIaScreen extends Screen {
             Util.getOperatingSystem().open(url);
             LoopbackRedirect receiver = pendingLogin;
             receiver.awaitCallback(Duration.ofMinutes(5)).whenComplete((callback, error) -> {
-                if (error == null) {
-                    CompletableFuture.supplyAsync(() -> {
-                        try {
-                            ChatGptTokenExchange.exchange(callback, attempt, receiver.redirectUri());
-                            return "Token ricevuti; verifica identita ancora necessaria.";
-                        } catch (Exception e) {
-                            return "Scambio OAuth non riuscito: controlla il log.";
+                if (error != null) {
+                    if (client != null) client.execute(() -> {
+                        if (pendingLogin == receiver) {
+                            status = Text.literal("Accesso scaduto o non riuscito.");
+                            pendingLogin = null;
                         }
-                    }).thenAccept(message -> {
-                        if (client != null) client.execute(() -> {
-                            status = Text.literal(message);
-                        });
+                        receiver.close();
                     });
+                    return;
                 }
-
-                if (client != null) client.execute(() -> {
-                    if (pendingLogin != receiver) return;
-                    if (error != null) status = Text.literal("Accesso scaduto o non riuscito.");
-                    receiver.close();
-                    pendingLogin = null;
+                // Keep the original redirect URI; close the local listener while
+                // the network exchange runs off the Minecraft render thread.
+                String redirectUri = receiver.redirectUri();
+                CompletableFuture.supplyAsync(() -> {
+                    try {
+                        ChatGptTokenExchange.exchange(callback, attempt, redirectUri);
+                        return "Permessi ricevuti; verifica identita ancora necessaria.";
+                    } catch (Exception e) {
+                        return "Scambio OAuth non riuscito o permessi insufficienti.";
+                    }
+                }).thenAccept(message -> {
+                    if (client != null) client.execute(() -> {
+                        if (pendingLogin == receiver) {
+                            status = Text.literal(message);
+                            pendingLogin = null;
+                        }
+                        receiver.close();
+                    });
                 });
             });
         } catch (Exception e) {
