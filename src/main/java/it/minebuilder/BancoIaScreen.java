@@ -10,6 +10,7 @@ import it.minebuilder.auth.OAuthPkce;
 import it.minebuilder.auth.LoopbackRedirect;
 import it.minebuilder.auth.ChatGptAuthorization;
 import it.minebuilder.auth.ChatGptHost;
+import it.minebuilder.auth.ChatGptTokenExchange;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
@@ -48,12 +49,25 @@ public final class BancoIaScreen extends Screen {
             status = Text.literal("Browser aperto: autorizza ChatGPT.");
             Util.getOperatingSystem().open(url);
             LoopbackRedirect receiver = pendingLogin;
-            receiver.awaitCode(Duration.ofMinutes(5)).whenComplete((code, error) -> {
+            receiver.awaitCallback(Duration.ofMinutes(5)).whenComplete((callback, error) -> {
+                if (error == null) {
+                    CompletableFuture.supplyAsync(() -> {
+                        try {
+                            ChatGptTokenExchange.exchange(callback, attempt, receiver.redirectUri());
+                            return "Token ricevuti; verifica identita ancora necessaria.";
+                        } catch (Exception e) {
+                            return "Scambio OAuth non riuscito: controlla il log.";
+                        }
+                    }).thenAccept(message -> {
+                        if (client != null) client.execute(() -> {
+                            if (pendingLogin == receiver) status = Text.literal(message);
+                        });
+                    });
+                }
+
                 if (client != null) client.execute(() -> {
                     if (pendingLogin != receiver) return;
-                    status = Text.literal(error == null
-                        ? "Codice ricevuto. Scambio token non ancora disponibile."
-                        : "Accesso scaduto o non riuscito.");
+                    if (error != null) status = Text.literal("Accesso scaduto o non riuscito.");
                     receiver.close();
                     pendingLogin = null;
                 });
