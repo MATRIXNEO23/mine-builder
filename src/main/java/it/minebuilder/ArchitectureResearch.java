@@ -43,7 +43,7 @@ public final class ArchitectureResearch {
                 String pageUrl = "https://commons.wikimedia.org/wiki/"
                     + URLEncoder.encode(title.replace(' ', '_'), StandardCharsets.UTF_8);
                 out.append(suffix.trim()).append(": ").append(title)
-                    .append(" | ").append(pageUrl).append('\\n');
+                    .append(" | ").append(pageUrl).append((char) 10);
                 total++;
             }
         }
