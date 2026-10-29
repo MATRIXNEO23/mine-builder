@@ -260,7 +260,7 @@ public final class BancoIaScreen extends Screen {
                     complete = object.get("complete").getAsBoolean();
                 }
                 if (!complete) {
-                    status = Text.literal("Diario parziale: " + files.size() + " pagine salvate.");
+                    continueJournal(job, origin, files.size(), cells);
                     return;
                 }
                 pendingPlan = BuildPlan.fromPlacements(cells.entrySet().stream()
@@ -274,6 +274,70 @@ public final class BancoIaScreen extends Screen {
         } catch (Exception e) {
             status = Text.literal("Recupero diario: " + e.getMessage());
         }
+    }
+    private void continueJournal(Path job, BlockPos origin, int startPage,
+                                 java.util.Map<BlockPos, net.minecraft.block.BlockState> existing) {
+        String token = accessToken, model = selectedModel;
+        if (token == null || model == null) {
+            status = Text.literal("Ricollega ChatGPT per continuare il diario."); return;
+        }
+        status = Text.literal("GPT riprende dalla pagina " + (startPage + 1));
+        CompletableFuture.supplyAsync(() -> {
+            try {
+                String design = java.nio.file.Files.readString(job.resolve("design.txt"));
+                String request = java.nio.file.Files.readString(job.resolve("request.txt"));
+                var occupied = new java.util.LinkedHashMap<>(existing);
+                String previous = "";
+                boolean complete = false;
+                for (int page = startPage; page < 100; page++) {
+                    String instruction = design + " Original request: " + request
+                        + ". Continue page " + (page + 1)
+                        + ". Preserve the original coordinates and design. Do not repeat any"
+                        + " previous blocks. Existing blocks count: " + occupied.size()
+                        + ". Previous page summary: " + previous
+                        + ". Return JSON geometry and mandatory boolean complete.";
+                    String answer = ChatGptInference.ask(token, model, instruction).trim();
+                    if (answer.startsWith("```")) {
+                        int first = answer.indexOf((char)10), last = answer.lastIndexOf("```");
+                        if (first >= 0 && last > first) answer = answer.substring(first + 1, last).trim();
+                    }
+                    var object = com.google.gson.JsonParser.parseString(answer).getAsJsonObject();
+                    if (!object.has("complete") || !object.get("complete").getAsJsonPrimitive().isBoolean())
+                        throw new java.io.IOException("GPT non ha dichiarato lo stato della pagina");
+                    BuildPlan parsed = BuildPlan.parse(answer, origin);
+                    for (var placement : parsed.placements()) {
+                        var previousState = occupied.get(placement.pos());
+                        if (previousState != null && !previousState.equals(placement.state()))
+                            throw new java.io.IOException("Conflitto con pagina salvata: " + placement.pos());
+                    }
+                    if (occupied.size() + parsed.placements().size() > 2_000_000)
+                        throw new java.io.IOException("Limite blocchi raggiunto");
+                    Path tmp = java.nio.file.Files.createTempFile(job, "page-", ".tmp");
+                    try {
+                        java.nio.file.Files.writeString(tmp, answer);
+                        java.nio.file.Files.move(tmp, job.resolve(
+                            String.format(java.util.Locale.ROOT, "%04d.json", page)),
+                            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    } finally { java.nio.file.Files.deleteIfExists(tmp); }
+                    for (var placement : parsed.placements())
+                        occupied.putIfAbsent(placement.pos(), placement.state());
+                    previous = answer.substring(0, Math.min(350, answer.length()));
+                    complete = object.get("complete").getAsBoolean();
+                    if (complete) break;
+                }
+                if (!complete) throw new java.io.IOException("Generazione sospesa: limite di 100 pagine");
+                BuildPlan result = BuildPlan.fromPlacements(occupied.entrySet().stream()
+                    .map(e -> new BuildPlan.Placement(e.getKey(), e.getValue())).toList());
+                result.validateSections();
+                return result;
+            } catch (Exception e) { throw new java.util.concurrent.CompletionException(e); }
+        }).whenComplete((plan, error) -> {
+            if (client != null) client.execute(() -> {
+                if (error != null) status = Text.literal("Ripresa GPT: " + error.getCause().getMessage());
+                else { pendingPlan = plan; lastPlan = plan;
+                    status = Text.literal("Generazione ripresa e completata. Premi Costruisci."); }
+            });
+        });
     }
     private void confirmBuild() {
         if (pendingPlan == null || client == null) { status = Text.literal("Prima genera un progetto."); return; }
