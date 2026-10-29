@@ -5,6 +5,9 @@ on:
     paths-ignore:
       - 'downloads/**'
   workflow_dispatch:
+concurrency:
+  group: mine-builder-publish-main
+  cancel-in-progress: false
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -64,4 +67,25 @@ jobs:
               --rawfile content /tmp/mine-builder-content.b64 \
               '{message:$message,content:$content}' > /tmp/jar-payload.json
           fi
-          gh api --method PUT "repos/$GITHUB_REPOSITORY/contents/$TARGET" --input /tmp/jar-payload.json
+          # A newer commit can advance main while this workflow compiles.
+          # Retry with a fresh blob SHA and current branch head.
+          for attempt in 1 2 3 4 5; do
+            SHA=$(gh api "repos/$GITHUB_REPOSITORY/contents/$TARGET" --jq .sha 2>/dev/null || true)
+            HEAD=$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)
+            if [ -n "$SHA" ]; then
+              jq -n --arg message "Update downloadable Mine Builder JAR" --arg sha "$SHA" \
+                --arg branch main --rawfile content /tmp/mine-builder-content.b64 \
+                '{message:$message,content:$content,sha:$sha,branch:$branch}' > /tmp/jar-payload.json
+            else
+              jq -n --arg message "Add downloadable Mine Builder JAR" \
+                --arg branch main --rawfile content /tmp/mine-builder-content.b64 \
+                '{message:$message,content:$content,branch:$branch}' > /tmp/jar-payload.json
+            fi
+            if gh api --method PUT "repos/$GITHUB_REPOSITORY/contents/$TARGET" --input /tmp/jar-payload.json; then
+              exit 0
+            fi
+            echo "Publish conflict, retry $attempt; main was $HEAD"
+            sleep 3
+          done
+          echo "Unable to publish JAR after retries" >&2
+          exit 1
