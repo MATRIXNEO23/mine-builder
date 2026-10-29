@@ -272,6 +272,29 @@ public final class BuildPlan {
                     addCell(cells, origin, (int)Math.round(x+(x2-x)*t),
                         (int)Math.round(y+(y2-y)*t), (int)Math.round(z+(z2-z)*t), state);
                 }
+            } else if (type.equals("elliptic_ring")) {
+                // General-purpose elliptical wall, arcade tier or stadium/arena ring.
+                // Centre x/z, base y, outer radii rx/rz, radial wall thickness and height.
+                int rx = shape.get("rx").getAsInt(), rz = shape.get("rz").getAsInt();
+                int thickness = shape.get("thickness").getAsInt();
+                int height = shape.get("height").getAsInt();
+                if (rx < 2 || rz < 2 || rx > 128 || rz > 128
+                    || thickness < 1 || thickness >= Math.min(rx, rz)
+                    || height < 1 || height > 128)
+                    throw new IllegalArgumentException("Invalid elliptic ring dimensions");
+                // Limit work and bounds before expanding the geometry.
+                if ((long)(2 * rx + 1) * (2 * rz + 1) * height > 4_000_000L)
+                    throw new IllegalArgumentException("Elliptic ring too large for one section");
+                for (int dx = -rx; dx <= rx; dx++)
+                    for (int dz = -rz; dz <= rz; dz++) {
+                        double outer = (double)dx * dx / ((double)rx * rx)
+                            + (double)dz * dz / ((double)rz * rz);
+                        double inner = (double)dx * dx / ((double)(rx-thickness) * (rx-thickness))
+                            + (double)dz * dz / ((double)(rz-thickness) * (rz-thickness));
+                        if (outer > 1.0 || inner < 1.0) continue;
+                        for (int dy = 0; dy < height; dy++)
+                            addCell(cells, origin, x + dx, y + dy, z + dz, state);
+                    }
             } else if (type.equals("sphere") || type.equals("ellipsoid") || type.equals("cylinder")) {
                 int rx = shape.get("rx").getAsInt();
                 int ry = shape.has("ry") ? shape.get("ry").getAsInt() : rx;
