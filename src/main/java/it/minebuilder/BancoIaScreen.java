@@ -116,7 +116,7 @@ public final class BancoIaScreen extends Screen {
         }
         String message = prompt.getText().trim();
         if (message.isEmpty()) return;
-        boolean build = message.toLowerCase(java.util.Locale.ROOT).matches("(?s).*(costruisc|edific|crea una cas|build |realizza una struttur).*");
+        boolean build = message.toLowerCase(java.util.Locale.ROOT).matches("(?s).*(costruisc|edific|crea una cas|build |realizza una struttur|ricostruisc|riproduci).*");
         if (build && (client == null || client.player == null || !client.isInSingleplayer())) {
             status = Text.literal("Solo mondi singleplayer."); return;
         }
@@ -124,8 +124,8 @@ public final class BancoIaScreen extends Screen {
         pendingPlan = null;
         String request = build
             ? "Generate a small Minecraft structure for: " + message
-              + ". Return ONLY compact JSON with width (5-15), depth (5-15), height (3-8), wall, roof, floor. "
-              + "Materials must be valid vanilla full-block IDs like minecraft:oak_planks and minecraft:stone_bricks. No block lists or markdown."
+              + ". Return ONLY compact JSON with width (5-15), depth (5-15), height (3-8), wall, roof, floor, trim, roof_style (gable, hip, flat). "
+              + "Materials must be valid vanilla full-block IDs like minecraft:oak_planks and minecraft:stone_bricks. Choose coherent materials for the requested architectural style. Never claim a named real landmark is accurate without measured source data; for a named real landmark return width 0 rather than invent dimensions. No block lists or markdown."
             : message;
         status = Text.literal("GPT sta rispondendo...");
         CompletableFuture.supplyAsync(() -> {
