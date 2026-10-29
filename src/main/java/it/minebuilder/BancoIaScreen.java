@@ -389,6 +389,10 @@ public final class BancoIaScreen extends Screen {
                 Path jobDir = journal.resolve(java.util.UUID.randomUUID().toString());
                 java.nio.file.Files.createDirectory(jobDir);
                 java.nio.file.Files.writeString(jobDir.resolve("request.txt"), message);
+                java.nio.file.Files.writeString(jobDir.resolve("origin.txt"),
+                    origin.getX() + "," + origin.getY() + "," + origin.getZ());
+                java.nio.file.Files.writeString(jobDir.resolve("design.txt"),
+                    enriched.substring(0, Math.min(enriched.length(), 12000)));
                 java.util.List<String> pages = new java.util.ArrayList<>();
                 String previous = "";
                 for (int page = 0; page < 100; page++) {
