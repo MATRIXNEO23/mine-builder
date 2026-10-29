@@ -13,6 +13,7 @@ import it.minebuilder.auth.ChatGptHost;
 import it.minebuilder.auth.ChatGptTokenExchange;
 import it.minebuilder.auth.ChatGptInference;
 import java.nio.file.Path;
+import net.minecraft.util.math.BlockPos;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 
@@ -24,6 +25,7 @@ public final class BancoIaScreen extends Screen {
     private static volatile String selectedModel;
     private Text status = Text.literal("ChatGPT non collegato.");
     private String lastReply = "";
+    private BuildPlan pendingPlan;
 
     public BancoIaScreen() {
         super(Text.literal("Banco IA - Mine Builder"));
@@ -41,6 +43,7 @@ public final class BancoIaScreen extends Screen {
             .dimensions(left, height / 2 + 43, 145, 20).build());
         addDrawableChild(ButtonWidget.builder(Text.literal("Chiudi"), button -> close())
             .dimensions(left + 155, height / 2 + 18, 145, 20).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal("Costruisci"), button -> confirmBuild()).dimensions(left + 155, height / 2 + 43, 145, 20).build());
         setInitialFocus(prompt);
     }
 
@@ -95,6 +98,15 @@ public final class BancoIaScreen extends Screen {
         }
     }
 
+    private void confirmBuild() {
+        if (pendingPlan == null || client == null) { status = Text.literal("Prima genera un progetto."); return; }
+        try {
+            BuildExecutor.start(client, pendingPlan);
+            status = Text.literal("Costruzione avviata.");
+            pendingPlan = null;
+        } catch (Exception e) { status = Text.literal("Errore: " + e.getMessage()); }
+    }
+
     private void sendMessage() {
         String token = accessToken;
         String model = selectedModel;
@@ -104,17 +116,45 @@ public final class BancoIaScreen extends Screen {
         }
         String message = prompt.getText().trim();
         if (message.isEmpty()) return;
+        boolean build = message.toLowerCase(java.util.Locale.ROOT).matches("(?s).*(costruisc|edific|crea una cas|build |realizza una struttur).*");
+        if (build && (client == null || client.player == null || !client.isInSingleplayer())) {
+            status = Text.literal("Solo mondi singleplayer."); return;
+        }
+        BlockPos origin = build ? client.player.getBlockPos().add(4, 0, 4) : null;
+        pendingPlan = null;
+        String request = build
+            ? "Generate a small Minecraft structure for: " + message
+              + ". Return ONLY JSON with a blocks array, each element has integer x,y,z and string block (minecraft:stone etc). "
+              + "Use 1-400 blocks, x/z within -16..16, y 0..16, valid vanilla blocks, no air, no markdown."
+            : message;
         status = Text.literal("GPT sta rispondendo...");
         CompletableFuture.supplyAsync(() -> {
             try {
-                return ChatGptInference.ask(token, model, message);
+                return ChatGptInference.ask(token, model, request);
             } catch (Exception e) {
                 return "Errore GPT: " + e.getMessage();
             }
         }).thenAccept(reply -> {
             if (client != null) client.execute(() -> {
-                lastReply = reply;
-                status = Text.literal(reply.startsWith("Errore GPT:") ? "Richiesta non riuscita." : "Risposta GPT ricevuta.");
+                if (build && !reply.startsWith("Errore GPT:")) {
+                    try {
+                        String json = reply.trim();
+                        if (json.startsWith("```")) {
+                            int first = json.indexOf('\n');
+                            int last = json.lastIndexOf("```");
+                            if (first >= 0 && last > first) json = json.substring(first + 1, last).trim();
+                        }
+                        pendingPlan = BuildPlan.parse(json, origin);
+                        lastReply = "Progetto pronto: " + pendingPlan.placements().size() + " blocchi. Premi Costruisci.";
+                        status = Text.literal("Progetto pronto, conferma.");
+                    } catch (Exception e) {
+                        lastReply = "Progetto non valido: " + e.getMessage();
+                        status = Text.literal("Progetto non valido.");
+                    }
+                } else {
+                    lastReply = reply;
+                    status = Text.literal(reply.startsWith("Errore GPT:") ? "Richiesta non riuscita." : "Risposta GPT ricevuta.");
+                }
             });
         });
     }
