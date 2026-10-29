@@ -52,11 +52,16 @@ jobs:
         run: |
           FILE=Mine-Builder-v0.1.0-Minecraft-1.20.1-Fabric.jar
           TARGET=downloads/$FILE
-          CONTENT=$(base64 -w 0 "$FILE")
           SHA=$(gh api "repos/$GITHUB_REPOSITORY/contents/$TARGET" --jq .sha 2>/dev/null || true)
+          # Stream base64 via a file: large JARs exceed the OS argument length limit.
+          base64 -w 0 "$FILE" > /tmp/mine-builder-content.b64
           if [ -n "$SHA" ]; then
-            jq -n --arg message "Update downloadable Mine Builder JAR" --arg content "$CONTENT" --arg sha "$SHA" '{message:$message,content:$content,sha:$sha}' > /tmp/jar-payload.json
+            jq -n --arg message "Update downloadable Mine Builder JAR" --arg sha "$SHA" \
+              --rawfile content /tmp/mine-builder-content.b64 \
+              '{message:$message,content:$content,sha:$sha}' > /tmp/jar-payload.json
           else
-            jq -n --arg message "Add downloadable Mine Builder JAR" --arg content "$CONTENT" '{message:$message,content:$content}' > /tmp/jar-payload.json
+            jq -n --arg message "Add downloadable Mine Builder JAR" \
+              --rawfile content /tmp/mine-builder-content.b64 \
+              '{message:$message,content:$content}' > /tmp/jar-payload.json
           fi
           gh api --method PUT "repos/$GITHUB_REPOSITORY/contents/$TARGET" --input /tmp/jar-payload.json
