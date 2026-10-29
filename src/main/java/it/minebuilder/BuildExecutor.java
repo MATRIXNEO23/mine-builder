@@ -13,6 +13,9 @@ import java.util.*;
 public final class BuildExecutor {
     private static final int PER_BATCH = 16;
     private static Queue<BuildPlan.Placement> pending = new ArrayDeque<>();
+    private static Queue<BuildPlan> remainingSections = new ArrayDeque<>();
+    private static int completedSections;
+    private static int totalSections;
     private static String worldKey = "";
     private static net.minecraft.server.MinecraftServer ownerServer;
     private static volatile boolean inFlight;
@@ -24,9 +27,13 @@ public final class BuildExecutor {
         if (client.getServer() == null || !client.isInSingleplayer() || client.world == null)
             throw new IllegalStateException("Only integrated singleplayer worlds supported");
         String key = client.world.getRegistryKey().getValue().toString();
-        if (inFlight || !pending.isEmpty())
+        if (inFlight || !pending.isEmpty() || !remainingSections.isEmpty())
             throw new IllegalStateException("A build is already running; finish or cancel it first");
-        pending = new ArrayDeque<>(plan.placements());
+        plan.validateSections();
+        remainingSections = new ArrayDeque<>(plan.sections());
+        totalSections = remainingSections.size();
+        completedSections = 0;
+        pending = new ArrayDeque<>(remainingSections.remove().placements());
         preflightDone = false;
         lastError = "";
         ownerServer = client.getServer();
@@ -34,7 +41,12 @@ public final class BuildExecutor {
     }
 
     public static void tick(MinecraftClient client) {
-        if (pending.isEmpty() || inFlight) return;
+        if (inFlight) return;
+        if (pending.isEmpty() && !remainingSections.isEmpty()) {
+            pending = new ArrayDeque<>(remainingSections.remove().placements());
+            preflightDone = false;
+        }
+        if (pending.isEmpty()) return;
         var server = client.getServer();
         if (client.world == null || server == null || server != ownerServer
                 || !worldKey.equals(client.world.getRegistryKey().getValue().toString())) {
@@ -134,6 +146,7 @@ public final class BuildExecutor {
                     pending.remove();
                     processed++;
                 }
+                if (pending.isEmpty()) completedSections++;
             } finally {
                 inFlight = false;
             }
@@ -180,6 +193,8 @@ public final class BuildExecutor {
 
     public static String lastError() { return lastError; }
     public static boolean preflightPassed() { return preflightDone; }
-    public static int remaining() { return pending.size(); }
-    public static void cancel() { pending.clear(); ownerServer = null; preflightDone = false; }
+    public static int remaining() { return pending.size() + remainingSections.stream()
+        .mapToInt(section -> section.placements().size()).sum(); }
+    public static String sectionProgress() { return completedSections + "/" + totalSections; }
+    public static void cancel() { pending.clear(); remainingSections.clear(); ownerServer = null; preflightDone = false; }
 }
