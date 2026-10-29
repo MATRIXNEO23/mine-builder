@@ -56,7 +56,7 @@ public final class BancoIaScreen extends Screen {
         addDrawableChild(ButtonWidget.builder(Text.literal(savedTab ? "Nuovo progetto" : "Nuovo progetto *"),
             button -> { savedTab = false; clearAndInit(); })
             .dimensions(left, top, half, 20).build());
-        addDrawableChild(ButtonWidget.builder(Text.literal(savedTab ? "Salvati *" : "Salvati"),
+        addDrawableChild(ButtonWidget.builder(Text.literal(savedTab ? "Salvati *" : "Salvati / Salva progetto"),
             button -> { savedTab = true; clearAndInit(); })
             .dimensions(left + half + 8, top, half, 20).build());
         if (!savedTab) {
@@ -93,7 +93,7 @@ public final class BancoIaScreen extends Screen {
             projectName.setMaxLength(64);
             projectName.setPlaceholder(Text.literal("Nome progetto da salvare..."));
             addDrawableChild(projectName);
-            addDrawableChild(ButtonWidget.builder(Text.literal("Salva progetto"), button -> saveBlueprint())
+            addDrawableChild(ButtonWidget.builder(Text.literal("Salva progetto (dopo progettazione)"), button -> saveBlueprint())
                 .dimensions(left, top + 56, half, 20).build());
             addDrawableChild(ButtonWidget.builder(Text.literal("Seleziona salvato"), button -> cycleBlueprint())
                 .dimensions(left + half + 8, top + 56, half, 20).build());
@@ -313,7 +313,27 @@ public final class BancoIaScreen extends Screen {
                         + " previous blocks. Existing blocks count: " + occupied.size()
                         + ". Previous page summary: " + previous
                         + ". Return JSON geometry and mandatory boolean complete.";
-                    String answer = ChatGptInference.ask(token, model, instruction).trim();
+                    String answer = "";
+                    BuildPlan parsedPage = null;
+                    for (int attempt = 0; attempt < 4; attempt++) {
+                        String adjusted = instruction + (attempt == 0 ? "" :
+                            " RETRY: previous page was rejected as too large or invalid. "
+                            + "Produce at most 5000 DISTINCT block positions, including expanded "
+                            + "cuboids and shapes. Reduce dimensions or split the work across "
+                            + "additional pages. Return valid JSON only.");
+                        answer = ChatGptInference.ask(token, model, adjusted).trim();
+                        if (answer.startsWith("```")) {
+                            int first = answer.indexOf((char)10), last = answer.lastIndexOf("```");
+                            if (first >= 0 && last > first) answer = answer.substring(first + 1, last).trim();
+                        }
+                        try {
+                            parsedPage = BuildPlan.parse(answer, origin);
+                            break;
+                        } catch (IllegalArgumentException ex) {
+                            if (attempt == 3) throw ex;
+                            generatorStage = "Pagina " + (page + 1) + ": riduzione geometria, tentativo " + (attempt + 2);
+                        }
+                    }
                     if (answer.startsWith("```")) {
                         int first = answer.indexOf((char)10), last = answer.lastIndexOf("```");
                         if (first >= 0 && last > first) answer = answer.substring(first + 1, last).trim();
@@ -572,7 +592,7 @@ public final class BancoIaScreen extends Screen {
                     } finally {
                         java.nio.file.Files.deleteIfExists(tmpPage);
                     }
-                    BuildPlan parsedPage = BuildPlan.parse(answer, origin);
+                    // Geometry already validated before persisting this page.
                     for (var placement : parsedPage.placements()) {
                         var existing = occupied.putIfAbsent(placement.pos(), placement.state());
                         if (existing != null && !existing.equals(placement.state()))
