@@ -382,6 +382,13 @@ public final class BancoIaScreen extends Screen {
                         + architecturalBrief.substring(0, Math.min(6000, architecturalBrief.length()));
                 }
                 if (!build) return ChatGptInference.ask(token, model, enriched);
+                // Persist each GPT page before requesting the next one.
+                Path journal = client.getServer().getSavePath(net.minecraft.util.WorldSavePath.ROOT)
+                    .resolve("minebuilder").resolve("generation-journal");
+                java.nio.file.Files.createDirectories(journal);
+                Path jobDir = journal.resolve(java.util.UUID.randomUUID().toString());
+                java.nio.file.Files.createDirectory(jobDir);
+                java.nio.file.Files.writeString(jobDir.resolve("request.txt"), message);
                 java.util.List<String> pages = new java.util.ArrayList<>();
                 String previous = "";
                 for (int page = 0; page < 100; page++) {
@@ -399,6 +406,15 @@ public final class BancoIaScreen extends Screen {
                     com.google.gson.JsonObject object = com.google.gson.JsonParser.parseString(answer).getAsJsonObject();
                     if (!object.has("complete") || !object.get("complete").getAsJsonPrimitive().isBoolean())
                         throw new IllegalStateException("Risposta GPT senza indicatore di completamento");
+                    Path tmpPage = java.nio.file.Files.createTempFile(jobDir, "page-", ".tmp");
+                    try {
+                        java.nio.file.Files.writeString(tmpPage, answer);
+                        java.nio.file.Files.move(tmpPage,
+                            jobDir.resolve(String.format(java.util.Locale.ROOT, "%04d.json", page)),
+                            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    } finally {
+                        java.nio.file.Files.deleteIfExists(tmpPage);
+                    }
                     pages.add(answer);
                     if (object.get("complete").getAsBoolean()) return "PAGED:" + String.join("##PAGE##", pages);
                     previous += " Page " + (page + 1) + ": " + answer.substring(0, Math.min(350, answer.length()));
