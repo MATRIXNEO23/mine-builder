@@ -26,6 +26,9 @@ public final class BancoIaScreen extends Screen {
     private Text status = Text.literal("ChatGPT non collegato.");
     private String lastReply = "";
     private BuildPlan pendingPlan;
+    private BuildPlan lastPlan;
+    private String selectedBlueprint;
+    private int blueprintIndex;
 
     public BancoIaScreen() {
         super(Text.literal("Banco IA - Mine Builder"));
@@ -44,7 +47,50 @@ public final class BancoIaScreen extends Screen {
         addDrawableChild(ButtonWidget.builder(Text.literal("Chiudi"), button -> close())
             .dimensions(left + 155, height / 2 + 18, 145, 20).build());
         addDrawableChild(ButtonWidget.builder(Text.literal("Costruisci"), button -> confirmBuild()).dimensions(left + 155, height / 2 + 43, 145, 20).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal("Salva progetto"), button -> saveBlueprint())
+            .dimensions(left, height / 2 + 69, 145, 20).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal("Elenco progetti"), button -> cycleBlueprint())
+            .dimensions(left + 155, height / 2 + 69, 145, 20).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal("Replica selezionato"), button -> replicateBlueprint())
+            .dimensions(left + 155, height / 2 + 94, 145, 20).build());
         setInitialFocus(prompt);
+    }
+
+    private void saveBlueprint() {
+        if (client == null || lastPlan == null) {
+            status = Text.literal("Prima genera un progetto."); return;
+        }
+        String name = prompt.getText().trim().toLowerCase(java.util.Locale.ROOT)
+            .replaceAll("[^a-z0-9_-]+", "-").replaceAll("^-+|-+$", "");
+        if (name.isEmpty() || name.length() > 64) {
+            status = Text.literal("Inserisci un nome breve nel campo."); return;
+        }
+        try {
+            BlueprintLibrary.save(client, name, lastPlan);
+            selectedBlueprint = name;
+            status = Text.literal("Progetto salvato: " + name);
+        } catch (Exception e) { status = Text.literal("Salvataggio: " + e.getMessage()); }
+    }
+
+    private void cycleBlueprint() {
+        try {
+            var names = BlueprintLibrary.names(client);
+            if (names.isEmpty()) { status = Text.literal("Nessun progetto salvato."); return; }
+            blueprintIndex = Math.floorMod(blueprintIndex, names.size());
+            selectedBlueprint = names.get(blueprintIndex++);
+            status = Text.literal("Selezionato: " + selectedBlueprint);
+        } catch (Exception e) { status = Text.literal("Elenco: " + e.getMessage()); }
+    }
+
+    private void replicateBlueprint() {
+        if (client == null || client.player == null || selectedBlueprint == null) {
+            status = Text.literal("Seleziona prima un progetto."); return;
+        }
+        try {
+            pendingPlan = BlueprintLibrary.load(client, selectedBlueprint,
+                client.player.getBlockPos().add(4, 0, 4));
+            status = Text.literal("Replica pronta: premi Costruisci.");
+        } catch (Exception e) { status = Text.literal("Replica: " + e.getMessage()); }
     }
 
     private void startLogin() {
@@ -204,6 +250,7 @@ public final class BancoIaScreen extends Screen {
                             if (first >= 0 && last > first) json = json.substring(first + 1, last).trim();
                         }
                         pendingPlan = BuildPlan.house(json, origin);
+                        lastPlan = pendingPlan;
                         lastReply = "Progetto pronto: " + pendingPlan.placements().size() + " blocchi. Premi Costruisci.";
                         status = Text.literal("Progetto pronto, conferma.");
                     } catch (Exception e) {
@@ -222,10 +269,10 @@ public final class BancoIaScreen extends Screen {
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         renderBackground(context);
         context.drawCenteredTextWithShadow(textRenderer, title, width / 2, height / 2 - 45, 0xFFFFFF);
-        context.drawCenteredTextWithShadow(textRenderer, status, width / 2, height / 2 + 52, 0xAAAAAA);
+        context.drawCenteredTextWithShadow(textRenderer, status, width / 2, height / 2 + 121, 0xAAAAAA);
         if (!lastReply.isEmpty()) {
             String display = lastReply.length() > 240 ? lastReply.substring(0, 240) + "..." : lastReply;
-            int y = height / 2 + 80;
+            int y = height / 2 + 145;
             for (int i = 0; i < display.length(); i += 46) {
                 context.drawCenteredTextWithShadow(textRenderer, display.substring(i, Math.min(i + 46, display.length())), width / 2, y, 0xFFFFFF);
                 y += 12;
