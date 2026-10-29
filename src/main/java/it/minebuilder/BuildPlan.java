@@ -24,6 +24,10 @@ public final class BuildPlan {
         BlockState wall = material(root, "wall", "minecraft:oak_planks");
         BlockState roof = material(root, "roof", "minecraft:dark_oak_planks");
         BlockState floor = material(root, "floor", "minecraft:stone_bricks");
+        String roofStyle = root.has("roof_style") ? root.get("roof_style").getAsString() : "gable";
+        if (!Set.of("gable", "hip", "flat").contains(roofStyle))
+            throw new IllegalArgumentException("Unsupported roof style");
+        BlockState trim = material(root, "trim", "minecraft:oak_log");
         BlockState glass = Registries.BLOCK.get(new Identifier("minecraft:glass_pane")).getDefaultState();
         BlockState air = Registries.BLOCK.get(new Identifier("minecraft:air")).getDefaultState();
         Map<BlockPos, BlockState> cells = new LinkedHashMap<>();
@@ -42,18 +46,25 @@ public final class BuildPlan {
         for (int x = -1; x <= w; x++) for (int z = -1; z <= d; z++)
             for (int y = h + 1; y <= h + rise + 2; y++)
                 put(cells, origin, x, y, z, air);
-        for (int x = -1; x <= w; x++) {
-            int level = Math.min(x + 1, w - x);
-            int roofY = h + 1 + level;
-            for (int z = -1; z <= d; z++) put(cells, origin, x, roofY, z, roof);
+        for (int x = -1; x <= w; x++) for (int z = -1; z <= d; z++) {
+            int xRise = Math.min(x + 1, w - x);
+            int zRise = Math.min(z + 1, d - z);
+            int level = roofStyle.equals("flat") ? 0
+                : roofStyle.equals("hip") ? Math.min(xRise, zRise) : xRise;
+            put(cells, origin, x, h + 1 + level, z, roof);
         }
-        // Fill triangular gables on front and rear beneath the sloping roof.
-        for (int x = 0; x < w; x++) {
+        if (roofStyle.equals("gable")) for (int x = 0; x < w; x++) {
             int top = h + Math.min(x + 1, w - x);
             for (int y = h + 1; y < top; y++) {
                 put(cells, origin, x, y, 0, wall);
                 put(cells, origin, x, y, d - 1, wall);
             }
+        }
+        for (int y = 1; y <= h; y++) {
+            put(cells, origin, 0, y, 0, trim);
+            put(cells, origin, w - 1, y, 0, trim);
+            put(cells, origin, 0, y, d - 1, trim);
+            put(cells, origin, w - 1, y, d - 1, trim);
         }
         // Centered, two-block-high entrance.
         int doorX = w / 2;
