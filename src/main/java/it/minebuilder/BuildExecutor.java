@@ -77,7 +77,11 @@ public final class BuildExecutor {
                             cancel();
                             return;
                         }
-                        if (!world.isChunkLoaded(target)) return;
+                        if (!world.isChunkLoaded(target)) {
+                            lastError = "In attesa del caricamento del terreno in " + target.toShortString()
+                                + ". Avvicinati all’area scelta; nessun blocco modificato.";
+                            return;
+                        }
                         var existing = world.getBlockState(target);
                         if (!existing.isAir() && !existing.equals(candidate.state())
                             && !isNaturalTerrain(existing)
@@ -93,6 +97,7 @@ public final class BuildExecutor {
                         cancel();
                         return;
                     }
+                    lastError = "";
                     preflightDone = true;
                 }
                 int processed = 0;
