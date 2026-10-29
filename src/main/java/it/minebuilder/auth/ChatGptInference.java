@@ -27,6 +27,24 @@ public final class ChatGptInference {
         throw new IOException("No ChatGPT plan models available");
     }
 
+    private static String readableError(InputStream stream) throws IOException {
+        String raw = new String(stream.readNBytes(4096), StandardCharsets.UTF_8);
+        try {
+            JsonObject json = JsonParser.parseString(raw).getAsJsonObject();
+            JsonObject error = json.has("error") && json.get("error").isJsonObject()
+                ? json.getAsJsonObject("error") : json;
+            String code = error.has("code") && !error.get("code").isJsonNull()
+                ? error.get("code").getAsString() : "unknown";
+            String message = error.has("message") && !error.get("message").isJsonNull()
+                ? error.get("message").getAsString() : "No message";
+            message = message.replaceAll("[\\r\\n\\t]", " ");
+            return ("code=" + code + " message=" + message).substring(0,
+                Math.min(350, ("code=" + code + " message=" + message).length()));
+        } catch (RuntimeException ignored) {
+            return "Server error body not recognized";
+        }
+    }
+
     public static String ask(String token, String model, String message) throws Exception {
         JsonObject body = new JsonObject();
         body.addProperty("model", model);
@@ -41,7 +59,7 @@ public final class ChatGptInference {
         HttpResponse<InputStream> response = HTTP.send(request, HttpResponse.BodyHandlers.ofInputStream());
         try (InputStream stream = response.body()) {
             if (response.statusCode() != 200)
-                throw new IOException("Inference HTTP " + response.statusCode());
+                throw new IOException("Inference HTTP " + response.statusCode() + ": " + readableError(stream));
             StringBuilder text = new StringBuilder();
             boolean completed = false;
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
