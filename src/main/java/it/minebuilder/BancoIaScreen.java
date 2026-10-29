@@ -154,19 +154,6 @@ public final class BancoIaScreen extends Screen {
     }
 
     private void sendMessage() {
-        String localRequest = prompt.getText().trim().toLowerCase(java.util.Locale.ROOT);
-        if ((localRequest.contains("ciliegio") || localRequest.contains("cherry tree"))
-                && (localRequest.contains("albero") || localRequest.contains("tree"))) {
-            if (client == null || client.player == null || !client.isInSingleplayer()) {
-                status = Text.literal("Solo mondi singleplayer."); return;
-            }
-            pendingPlan = BuildPlan.cherryTree(client.player.getBlockPos().add(12, 0, 12));
-            lastPlan = pendingPlan;
-            lastReply = "Albero di ciliegio gigante pronto: "
-                + pendingPlan.placements().size() + " blocchi. Premi Costruisci.";
-            status = Text.literal("Progetto albero pronto, conferma.");
-            return;
-        }
         String token = accessToken;
         String model = selectedModel;
         if (token == null || model == null) {
@@ -241,9 +228,16 @@ public final class BancoIaScreen extends Screen {
         BlockPos origin = build ? client.player.getBlockPos().add(4, 0, 4) : null;
         pendingPlan = null;
         String request = build
-            ? "Generate a small Minecraft structure for: " + message
-              + ". Return ONLY compact JSON with width (5-15), depth (5-15), height (3-8), wall, roof, floor, trim, roof_style (gable, hip, flat), pool (boolean). If the user asks for a swimming pool, pool MUST be true; if the user asks for a modern villa, choose flat roof, modern concrete/quartz walls, large dimensions and glass-friendly trim. Never silently omit requested features. "
-              + "Materials must be valid vanilla full-block IDs like minecraft:oak_planks and minecraft:stone_bricks. Choose coherent materials for the requested architectural style. Never claim a named real landmark is accurate without measured source data; for a named real landmark return width 0 rather than invent dimensions. No block lists or markdown."
+            ? "Design the requested Minecraft object faithfully: " + message
+              + ". You are a universal block architect, NOT a house generator. "
+              + "Return ONLY JSON {\\\"blocks\\\":[{\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0,\\\"block\\\":\\\"minecraft:stone\\\"}]}. "
+              + "Each block has integer coordinates relative to origin and a valid Minecraft 1.20.1 vanilla block ID. "
+              + "Include every explicitly requested feature and choose geometry appropriate to the subject. "
+              + "For trees include trunk branches and leaves; for pools include water and basin; for buildings include openings and interiors. "
+              + "Do not substitute a house for another requested object. "
+              + "Maximum 20000 blocks; x,z within -128..128, y within -32..128; no duplicate positions. "
+              + "If too complex for a single response, return a coherent small section rather than claiming completion. "
+              + "No markdown, no explanation."
             : message;
         status = Text.literal("GPT sta rispondendo...");
         CompletableFuture.supplyAsync(() -> {
@@ -262,14 +256,7 @@ public final class BancoIaScreen extends Screen {
                             int last = json.lastIndexOf("```");
                             if (first >= 0 && last > first) json = json.substring(first + 1, last).trim();
                         }
-                        // Enforce explicit user requirements even when the model omits them.
-                        com.google.gson.JsonObject spec = com.google.gson.JsonParser.parseString(json).getAsJsonObject();
-                        String lowerRequest = message.toLowerCase(java.util.Locale.ROOT);
-                        if (lowerRequest.contains("piscina") || lowerRequest.contains("pool"))
-                            spec.addProperty("pool", true);
-                        if (lowerRequest.contains("moderna") || lowerRequest.contains("moderno"))
-                            spec.addProperty("roof_style", "flat");
-                        pendingPlan = BuildPlan.house(spec.toString(), origin);
+                        pendingPlan = BuildPlan.parse(json, origin);
                         lastPlan = pendingPlan;
                         lastReply = "Progetto pronto: " + pendingPlan.placements().size() + " blocchi. Premi Costruisci.";
                         status = Text.literal("Progetto pronto, conferma.");
