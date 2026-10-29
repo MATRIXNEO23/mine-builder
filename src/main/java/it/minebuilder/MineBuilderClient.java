@@ -2,6 +2,7 @@ package it.minebuilder;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.ActionResult;
 
@@ -9,6 +10,7 @@ import net.minecraft.util.ActionResult;
 public final class MineBuilderClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
+        ClientTickEvents.END_CLIENT_TICK.register(BuildExecutor::tick);
         UseBlockCallback.EVENT.register((player, world, hand, hit) -> {
             if (!world.isClient || !world.getBlockState(hit.getBlockPos()).isOf(MineBuilder.BANCO_IA)) {
                 return ActionResult.PASS;
