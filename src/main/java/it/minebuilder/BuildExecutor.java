@@ -282,7 +282,8 @@ public final class BuildExecutor {
         catch (NumberFormatException e) { throw new IOException("Origine non valida", e); }
         BuildPlan plan = BlueprintLibrary.load(client, RESUME_NAME, origin);
         List<BuildPlan> sections = plan.sections();
-        if (done < 0 || done >= sections.size()) throw new IOException("Nessuna sezione da riprendere");
+        if (done < 0 || done > sections.size()) throw new IOException("Avanzamento non valido");
+        if (done == sections.size()) throw new IOException("Costruzione gia completata");
         plan.validateSections();
         activePlan = plan;
         activeDimension = dimension;
@@ -302,5 +303,5 @@ public final class BuildExecutor {
     public static int remaining() { return pending.size() + remainingSections.stream()
         .mapToInt(section -> section.placements().size()).sum(); }
     public static String sectionProgress() { return completedSections + "/" + totalSections; }
-    public static void cancel() { pending.clear(); remainingSections.clear(); ownerServer = null; preflightDone = false; }
+    public static void cancel() { pending.clear(); remainingSections.clear(); currentSection = List.of(); ownerServer = null; preflightDone = false; }
 }
