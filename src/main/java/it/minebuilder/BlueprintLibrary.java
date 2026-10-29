@@ -5,7 +5,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.level.storage.WorldSavePath;
+import net.minecraft.util.WorldSavePath;
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.*;
