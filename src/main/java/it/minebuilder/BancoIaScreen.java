@@ -150,10 +150,12 @@ public final class BancoIaScreen extends Screen {
         try {
             placementPlan = pendingPlan;
             pendingPlan = null;
-            status = Text.literal("Posizionamento attivo: usa il martello sul blocco desiderato.");
+            status = Text.literal("Martello: accovacciati e clicca per ruotare; clic normale per costruire.");
             close();
         } catch (Exception e) { status = Text.literal("Errore: " + e.getMessage()); }
     }
+
+    public static BuildPlan peekPlacementPlan() { return placementPlan; }
 
     public static BuildPlan takePlacementPlan() {
         BuildPlan result = placementPlan;
