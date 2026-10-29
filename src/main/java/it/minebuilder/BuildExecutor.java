@@ -2,6 +2,9 @@ package it.minebuilder;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.registry.tag.BlockTags;
 import java.util.*;
 
 /** Local singleplayer prototype: paced placement through the integrated server thread. */
@@ -52,7 +55,8 @@ public final class BuildExecutor {
                         }
                         if (!world.isChunkLoaded(target)) return;
                         var existing = world.getBlockState(target);
-                        if (!existing.isAir() && !existing.equals(candidate.state())) {
+                        if (!existing.isAir() && !existing.equals(candidate.state())
+                            && !isNaturalTerrain(existing)) {
                             lastError = "Area occupata: " + target.toShortString();
                             cancel();
                             return;
@@ -79,6 +83,25 @@ public final class BuildExecutor {
                 inFlight = false;
             }
         });
+    }
+
+    /** Conservative terrain clearance within the planned blueprint volume only.
+     * Artificial blocks, chests, ores, bedrock and fluids remain protected.
+     */
+    private static boolean isNaturalTerrain(BlockState state) {
+        if (state.isIn(BlockTags.LEAVES) || state.isIn(BlockTags.FLOWERS)
+            || state.isIn(BlockTags.SAPLINGS) || state.isIn(BlockTags.REPLACEABLE))
+            return true;
+        return state.isOf(Blocks.GRASS_BLOCK) || state.isOf(Blocks.DIRT)
+            || state.isOf(Blocks.COARSE_DIRT) || state.isOf(Blocks.PODZOL)
+            || state.isOf(Blocks.ROOTED_DIRT) || state.isOf(Blocks.MYCELIUM)
+            || state.isOf(Blocks.STONE) || state.isOf(Blocks.ANDESITE)
+            || state.isOf(Blocks.DIORITE) || state.isOf(Blocks.GRANITE)
+            || state.isOf(Blocks.DEEPSLATE) || state.isOf(Blocks.TUFF)
+            || state.isOf(Blocks.CALCITE) || state.isOf(Blocks.GRAVEL)
+            || state.isOf(Blocks.SAND) || state.isOf(Blocks.RED_SAND)
+            || state.isOf(Blocks.CLAY) || state.isOf(Blocks.SNOW)
+            || state.isOf(Blocks.SNOW_BLOCK) || state.isOf(Blocks.MOSS_BLOCK);
     }
 
     public static String lastError() { return lastError; }
