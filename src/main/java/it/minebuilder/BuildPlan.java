@@ -44,6 +44,44 @@ public final class BuildPlan {
     }
 
 
+    /** Basic topology checks for architectural plans, based only on generated block states. */
+    public String architectureWarnings() {
+        Map<BlockPos, BlockState> cells = new HashMap<>();
+        for (Placement placement : placements) cells.put(placement.pos(), placement.state());
+        int doors = 0, stairs = 0, ladders = 0, transparent = 0;
+        int minY = Integer.MAX_VALUE, maxY = Integer.MIN_VALUE;
+        Set<Integer> occupiedLevels = new HashSet<>();
+        for (Placement placement : placements) {
+            BlockState state = placement.state();
+            if (state.isAir()) continue;
+            String name = Registries.BLOCK.getId(state.getBlock()).getPath();
+            if (name.endsWith("_door")) doors++;
+            if (name.endsWith("_stairs")) stairs++;
+            if (name.equals("ladder") || name.equals("scaffolding")) ladders++;
+            if (name.contains("glass") || name.endsWith("_pane")) transparent++;
+            occupiedLevels.add(placement.pos().getY());
+            minY = Math.min(minY, placement.pos().getY());
+            maxY = Math.max(maxY, placement.pos().getY());
+        }
+        List<String> warnings = new ArrayList<>();
+        if (doors == 0) warnings.add("nessuna porta esplicita (verificare gli ingressi)");
+        if (maxY - minY >= 9 && stairs == 0 && ladders == 0)
+            warnings.add("struttura alta senza scale o scale a pioli rilevate");
+        if (transparent == 0) warnings.add("nessuna finestra vetrata rilevata");
+        int unsupported = 0;
+        for (Placement placement : placements) {
+            BlockPos p = placement.pos();
+            if (placement.state().isAir()) continue;
+            String name = Registries.BLOCK.getId(placement.state().getBlock()).getPath();
+            if ((name.endsWith("_door") || name.equals("ladder")) && !cells.containsKey(p.down()))
+                unsupported++;
+        }
+        if (unsupported > 0) warnings.add(unsupported + " elementi di accesso senza base nel progetto");
+        return warnings.isEmpty()
+            ? "Controlli architettonici di base: nessuna anomalia rilevata (non prova di percorribilita)."
+            : "Avvisi architettonici: " + String.join("; ", warnings) + ".";
+    }
+
     /** Parametric house: GPT chooses dimensions/materials, Java builds coherent geometry. */
     public static BuildPlan house(String json, BlockPos origin) {
         JsonObject root = JsonParser.parseString(json).getAsJsonObject();
