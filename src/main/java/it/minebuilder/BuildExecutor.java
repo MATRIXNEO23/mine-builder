@@ -19,6 +19,7 @@ public final class BuildExecutor {
     private static Queue<BuildPlan> remainingSections = new ArrayDeque<>();
     private static int completedSections;
     private static int totalSections;
+    private static List<BuildPlan.Placement> currentSection = List.of();
     private static BuildPlan activePlan;
     private static String activeDimension = "";
     private static final String RESUME_NAME = "active-build";
@@ -56,7 +57,8 @@ public final class BuildExecutor {
         remainingSections = new ArrayDeque<>(plan.sections());
         totalSections = remainingSections.size();
         completedSections = 0;
-        pending = new ArrayDeque<>(remainingSections.remove().placements());
+        currentSection = remainingSections.remove().placements();
+        pending = new ArrayDeque<>(currentSection);
         preflightDone = false;
         lastError = "";
         ownerServer = client.getServer();
@@ -66,7 +68,8 @@ public final class BuildExecutor {
     public static void tick(MinecraftClient client) {
         if (inFlight) return;
         if (pending.isEmpty() && !remainingSections.isEmpty()) {
-            pending = new ArrayDeque<>(remainingSections.remove().placements());
+            currentSection = remainingSections.remove().placements();
+        pending = new ArrayDeque<>(currentSection);
             preflightDone = false;
         }
         if (pending.isEmpty()) return;
@@ -170,6 +173,14 @@ public final class BuildExecutor {
                     processed++;
                 }
                 if (pending.isEmpty()) {
+                    for (var expected : currentSection) {
+                        if (!world.isChunkLoaded(expected.pos())
+                            || !world.getBlockState(expected.pos()).equals(expected.state())) {
+                            lastError = "Verifica sezione fallita in " + expected.pos().toShortString();
+                            cancel();
+                            return;
+                        }
+                    }
                     try {
                         // Persist world changes before advancing the checkpoint.
                         world.getChunkManager().save(true);
@@ -280,7 +291,8 @@ public final class BuildExecutor {
         totalSections = sections.size();
         completedSections = done;
         remainingSections = new ArrayDeque<>(sections.subList(done + 1, sections.size()));
-        pending = new ArrayDeque<>(sections.get(done).placements());
+        currentSection = sections.get(done).placements();
+        pending = new ArrayDeque<>(currentSection);
         preflightDone = false;
         lastError = "";
     }
