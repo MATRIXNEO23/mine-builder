@@ -331,6 +331,26 @@ public final class BancoIaScreen extends Screen {
                         enriched += " Visual analysis unavailable; do not claim reference images were inspected.";
                     }
                 }
+                if (build) {
+                    String architecturalBrief = ChatGptInference.ask(token, model,
+                        "Act as an architectural designer creating an ORIGINAL, coherent Minecraft "
+                        + "structure. User request: " + message + ". "
+                        + "First establish the building category, function, approximate dimensions "
+                        + "in metres (1 Minecraft block = 1 metre), footprint and floor plan, "
+                        + "structural system, symmetry or asymmetry, circulation, stairs, "
+                        + "entrances, windows, roof, facade rhythm, materials and distinctive details. "
+                        + "Ensure every level is accessible and volumes are plausible. "
+                        + "Use historical examples only as inspiration, never copy an unverified plan. "
+                        + "If the user explicitly requests a real 1:1 building, distinguish "
+                        + "verified dimensions from unknowns and do not claim exact fidelity. "
+                        + "Do not produce block coordinates or JSON. "
+                        + "Return a concise technical architectural design brief in Italian. "
+                        + "Available research context: "
+                        + enriched.substring(0, Math.min(6500, enriched.length())));
+                    enriched += " MANDATORY PRELIMINARY ARCHITECTURAL DESIGN (follow its spatial "
+                        + "organization, dimensions, circulation and details when generating JSON): "
+                        + architecturalBrief.substring(0, Math.min(6000, architecturalBrief.length()));
+                }
                 return ChatGptInference.ask(token, model, enriched);
             } catch (Exception e) {
                 return "Errore GPT: " + e.getMessage();
