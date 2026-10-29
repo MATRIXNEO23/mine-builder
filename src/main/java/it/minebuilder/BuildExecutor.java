@@ -41,8 +41,19 @@ public final class BuildExecutor {
             Path existing = progressPath(client);
             if (Files.isRegularFile(existing)) {
                 List<String> previous = Files.readAllLines(existing);
-                if (previous.size() == 2 && !previous.get(1).equals("COMPLETE"))
-                    throw new IOException("Esiste un lavoro sospeso: usa Riprendi costruzione");
+                if (previous.size() == 2 && !previous.get(1).equals("COMPLETE")) {
+                    boolean finished = false;
+                    try {
+                        int count = Integer.parseInt(previous.get(1));
+                        BuildPlan prior = BlueprintLibrary.load(client, RESUME_NAME,
+                            readSavedOrigin(client));
+                        finished = count >= prior.sections().size();
+                    } catch (RuntimeException ignored) {
+                        // Invalid checkpoints are not safe to overwrite.
+                    }
+                    if (!finished)
+                        throw new IOException("Esiste un lavoro sospeso: usa Riprendi costruzione");
+                }
             }
             BlueprintLibrary.save(client, RESUME_NAME, plan);
             saveProgress(client, key, 0);
@@ -257,6 +268,19 @@ public final class BuildExecutor {
         } finally { Files.deleteIfExists(tmp); }
     }
 
+    private static BlockPos readSavedOrigin(MinecraftClient client) throws IOException {
+        Path originFile = progressPath(client).resolveSibling("active-build.origin");
+        if (!Files.isRegularFile(originFile)) throw new IOException("Origine non salvata");
+        String[] coords = Files.readString(originFile).trim().split(",");
+        if (coords.length != 3) throw new IOException("Origine non valida");
+        try {
+            return new BlockPos(Integer.parseInt(coords[0]),
+                Integer.parseInt(coords[1]), Integer.parseInt(coords[2]));
+        } catch (NumberFormatException e) {
+            throw new IOException("Origine non valida", e);
+        }
+    }
+
     /** Resume only on explicit request; completed sections are not regenerated. */
     public static void resume(MinecraftClient client) throws IOException {
         if (inFlight || !pending.isEmpty() || !remainingSections.isEmpty())
@@ -272,14 +296,7 @@ public final class BuildExecutor {
         catch (NumberFormatException e) { throw new IOException("Avanzamento non valido", e); }
         // Saved blueprint uses the first block as its reference point.
         // Persisting the original absolute origin is essential for exact resumption.
-        Path originFile = progressPath(client).resolveSibling("active-build.origin");
-        if (!Files.isRegularFile(originFile)) throw new IOException("Origine non salvata");
-        String[] coords = Files.readString(originFile).trim().split(",");
-        if (coords.length != 3) throw new IOException("Origine non valida");
-        BlockPos origin;
-        try { origin = new BlockPos(Integer.parseInt(coords[0]),
-            Integer.parseInt(coords[1]), Integer.parseInt(coords[2])); }
-        catch (NumberFormatException e) { throw new IOException("Origine non valida", e); }
+        BlockPos origin = readSavedOrigin(client);
         BuildPlan plan = BlueprintLibrary.load(client, RESUME_NAME, origin);
         List<BuildPlan> sections = plan.sections();
         if (done < 0 || done > sections.size()) throw new IOException("Avanzamento non valido");
