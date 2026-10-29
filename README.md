@@ -39,3 +39,7 @@ Documentazione:
 - https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference
 - https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations
 - https://help.openai.com/en/articles/20001542-using-your-chatgpt-plan-in-other-apps-and-sites
+
+## Test tecnico predisposto
+
+Il file [`scripts/verify-plan-sharing.mjs`](scripts/verify-plan-sharing.mjs) verifica il consenso `session.sharing`, scopre un modello effettivamente disponibile e richiede una risposta completa via `chatgpt.streamResponse()` usando il client Sign in with ChatGPT. **Non è ancora eseguibile autonomamente:** manca il bridge locale che implementi il login OAuth, memorizzi i token in modo sicuro e fornisca il client già autenticato. Non richiedere mai all'utente di incollare token in chat o GitHub. Il test sul PC e il controllo dei limiti restano da eseguire.
