@@ -34,7 +34,26 @@ public final class BuildPlan {
                 if (x == 0 || z == 0 || x == w - 1 || z == d - 1)
                     put(cells, origin, x, y, z, wall);
             }
-            put(cells, origin, x, h + 1, z, roof);
+
+        }
+        // Pitched gable roof with one-block overhang, ridge running along Z.
+        // Clear the roof volume first so existing leaves cannot remain inside.
+        int rise = (w + 1) / 2;
+        for (int x = -1; x <= w; x++) for (int z = -1; z <= d; z++)
+            for (int y = h + 1; y <= h + rise + 2; y++)
+                put(cells, origin, x, y, z, air);
+        for (int x = -1; x <= w; x++) {
+            int level = Math.min(x + 1, w - x);
+            int roofY = h + 1 + level;
+            for (int z = -1; z <= d; z++) put(cells, origin, x, roofY, z, roof);
+        }
+        // Fill triangular gables on front and rear beneath the sloping roof.
+        for (int x = 0; x < w; x++) {
+            int top = h + Math.min(x + 1, w - x);
+            for (int y = h + 1; y < top; y++) {
+                put(cells, origin, x, y, 0, wall);
+                put(cells, origin, x, y, d - 1, wall);
+            }
         }
         // Centered, two-block-high entrance.
         int doorX = w / 2;
