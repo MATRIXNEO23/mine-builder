@@ -41,6 +41,8 @@ public final class BancoIaScreen extends Screen {
     private String selectedBlueprint;
     private int blueprintIndex;
     private static String autoRecoveredWorld;
+    private static volatile Path streamingJob;
+    private static volatile boolean streamingConfirmed;
     private boolean journalRecoveryRunning;
 
     public BancoIaScreen() {
@@ -377,6 +379,18 @@ public final class BancoIaScreen extends Screen {
         });
     }
     private void confirmBuild() {
+        if (streamingJob != null && pendingPlan != null && !streamingConfirmed) {
+            try {
+                ProgressiveBuild.approve(client, streamingJob);
+                streamingConfirmed = true;
+                pendingPlan = null;
+                status = Text.literal("Costruzione progressiva avviata.");
+                close();
+            } catch (Exception e) {
+                status = Text.literal("Avvio progressivo: " + e.getMessage());
+            }
+            return;
+        }
         if (pendingPlan == null || client == null) { status = Text.literal("Prima genera un progetto."); return; }
         try {
             placementPlan = pendingPlan;
@@ -558,6 +572,7 @@ public final class BancoIaScreen extends Screen {
                 java.nio.file.Files.createDirectories(journal);
                 Path jobDir = journal.resolve(java.util.UUID.randomUUID().toString());
                 java.nio.file.Files.createDirectory(jobDir);
+                streamingJob = jobDir;
                 java.nio.file.Files.writeString(jobDir.resolve("request.txt"), message);
                 java.nio.file.Files.writeString(jobDir.resolve("origin.txt"),
                     origin.getX() + "," + origin.getY() + "," + origin.getZ());
@@ -602,6 +617,15 @@ public final class BancoIaScreen extends Screen {
                     if (validated.size() > 2_000_000)
                         throw new IllegalStateException("Limite di sicurezza del progetto superato");
                     pages.add(answer);
+                    if (page == 0 && !streamingConfirmed && client != null) {
+                        BuildPlan first = parsedPage;
+                        client.execute(() -> {
+                            if (!streamingConfirmed) {
+                                pendingPlan = first;
+                                status = Text.literal("Prima pagina pronta: premi Costruisci.");
+                            }
+                        });
+                    }
                     generatorPages = pages.size();
                     generatorBlocks = validated.size();
                     generatorStage = "Pagina " + pages.size() + " validata e salvata";
@@ -646,6 +670,10 @@ public final class BancoIaScreen extends Screen {
                             }
                             pendingPlan = BuildPlan.fromPlacements(combined);
                         } else pendingPlan = BuildPlan.parse(json, origin);
+                        if (streamingConfirmed) {
+                            status = Text.literal("GPT completato; costruzione progressiva attiva.");
+                            return;
+                        }
                         pendingPlan.validateSections();
                         lastPlan = pendingPlan;
                         lastReply = "Progetto pronto: " + pendingPlan.placements().size() + " blocchi. "
