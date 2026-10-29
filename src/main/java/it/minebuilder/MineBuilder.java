@@ -34,6 +34,8 @@ public final class MineBuilder implements ModInitializer {
         }
     };
 
+    public static final Item BUILDER_TOOL = new Item(new Item.Settings().maxCount(1));
+
     @Override
     public void onInitialize() {
         Identifier id = new Identifier(MOD_ID, "banco_ia");
@@ -41,6 +43,10 @@ public final class MineBuilder implements ModInitializer {
         Registry.register(Registries.ITEM, id, new BlockItem(BANCO_IA, new Item.Settings()));
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.FUNCTIONAL).register(entries -> entries.add(Registries.ITEM.get(id)));
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.SEARCH).register(entries -> entries.add(Registries.ITEM.get(id)));
+        Identifier toolId = new Identifier(MOD_ID, "builder_tool");
+        Registry.register(Registries.ITEM, toolId, BUILDER_TOOL);
+        ItemGroupEvents.modifyEntriesEvent(ItemGroups.TOOLS).register(entries -> entries.add(BUILDER_TOOL));
+        ItemGroupEvents.modifyEntriesEvent(ItemGroups.SEARCH).register(entries -> entries.add(BUILDER_TOOL));
         LOGGER.info("Mine Builder: Banco IA registered; GPT connection not yet configured.");
     }
 }
