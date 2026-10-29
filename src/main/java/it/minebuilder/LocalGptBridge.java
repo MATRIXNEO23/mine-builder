@@ -8,26 +8,36 @@ import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Minecraft-side client for a separate local GPT bridge.
- * Never holds an OAuth token, API key, or remote service credentials.
- * The local bridge must handle account consent and inference independently.
+ * In-process networking for Mine Builder. No external bridge executable is required.
+ * Authentication and GPT requests will be integrated only after the supported
+ * account-consent flow is verified. No API keys or credentials are embedded here.
  */
 public final class LocalGptBridge {
-    private static final URI ENDPOINT = URI.create("http://127.0.0.1:38471/health");
     private static final HttpClient CLIENT = HttpClient.newBuilder()
-        .connectTimeout(Duration.ofSeconds(2))
+        .connectTimeout(Duration.ofSeconds(3))
         .build();
 
     private LocalGptBridge() {}
 
-    /** Non-blocking check: a running bridge is not proof of GPT authentication. */
-    public static CompletableFuture<Boolean> isBridgeRunning() {
-        HttpRequest request = HttpRequest.newBuilder(ENDPOINT)
-            .timeout(Duration.ofSeconds(3))
+    /**
+     * Asynchronous HTTPS transport for an authenticated, explicitly approved
+     * endpoint. This transport does not initiate OAuth or spend API credits.
+     */
+    public static CompletableFuture<String> getPublicHttps(URI endpoint) {
+        if (endpoint == null || !"https".equalsIgnoreCase(endpoint.getScheme())) {
+            return CompletableFuture.failedFuture(
+                new IllegalArgumentException("Only HTTPS endpoints are permitted"));
+        }
+        HttpRequest request = HttpRequest.newBuilder(endpoint)
+            .timeout(Duration.ofSeconds(8))
             .GET()
             .build();
-        return CLIENT.sendAsync(request, HttpResponse.BodyHandlers.discarding())
-            .thenApply(response -> response.statusCode() == 200)
-            .exceptionally(error -> false);
+        return CLIENT.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+            .thenApply(response -> {
+                if (response.statusCode() != 200) {
+                    throw new IllegalStateException("HTTPS request failed: HTTP " + response.statusCode());
+                }
+                return response.body();
+            });
     }
 }
