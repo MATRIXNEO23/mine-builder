@@ -229,7 +229,7 @@ public final class BancoIaScreen extends Screen {
         pendingPlan = null;
         String request = build
             ? "Generate a small Minecraft structure for: " + message
-              + ". Return ONLY compact JSON with width (5-15), depth (5-15), height (3-8), wall, roof, floor, trim, roof_style (gable, hip, flat). "
+              + ". Return ONLY compact JSON with width (5-15), depth (5-15), height (3-8), wall, roof, floor, trim, roof_style (gable, hip, flat), pool (boolean). If the user asks for a swimming pool, pool MUST be true; if the user asks for a modern villa, choose flat roof, modern concrete/quartz walls, large dimensions and glass-friendly trim. Never silently omit requested features. "
               + "Materials must be valid vanilla full-block IDs like minecraft:oak_planks and minecraft:stone_bricks. Choose coherent materials for the requested architectural style. Never claim a named real landmark is accurate without measured source data; for a named real landmark return width 0 rather than invent dimensions. No block lists or markdown."
             : message;
         status = Text.literal("GPT sta rispondendo...");
@@ -249,7 +249,14 @@ public final class BancoIaScreen extends Screen {
                             int last = json.lastIndexOf("```");
                             if (first >= 0 && last > first) json = json.substring(first + 1, last).trim();
                         }
-                        pendingPlan = BuildPlan.house(json, origin);
+                        // Enforce explicit user requirements even when the model omits them.
+                        com.google.gson.JsonObject spec = com.google.gson.JsonParser.parseString(json).getAsJsonObject();
+                        String lowerRequest = message.toLowerCase(java.util.Locale.ROOT);
+                        if (lowerRequest.contains("piscina") || lowerRequest.contains("pool"))
+                            spec.addProperty("pool", true);
+                        if (lowerRequest.contains("moderna") || lowerRequest.contains("moderno"))
+                            spec.addProperty("roof_style", "flat");
+                        pendingPlan = BuildPlan.house(spec.toString(), origin);
                         lastPlan = pendingPlan;
                         lastReply = "Progetto pronto: " + pendingPlan.placements().size() + " blocchi. Premi Costruisci.";
                         status = Text.literal("Progetto pronto, conferma.");
