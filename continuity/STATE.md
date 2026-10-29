@@ -37,3 +37,9 @@ Zero costi aggiuntivi; niente API key a consumo o fallback a pagamento. Non inse
 - Non deve sovrascrivere costruzioni preesistenti senza consenso esplicito. Minecraft non distingue sempre blocchi naturali da blocchi piazzati: in caso di incertezza bloccare la modifica e chiedere conferma.
 - Prima di ogni modifica distruttiva, mostrare l'area coinvolta e predisporre un backup recuperabile; non promettere riconoscimento perfetto.
 - Questo è un requisito di progetto approvato, NON una funzione già implementata o testata. È un gate obbligatorio prima della costruzione automatica.
+
+## Progresso codice Banco IA — 29 ottobre 2026
+- Commit `53c8915`: registrazione del blocco e oggetto Banco IA; sei asset blocco/item/localizzazione/loot aggiunti fino a `28bc373`.
+- Commit `840c8d7`: interazione clic destro sul blocco; risponde con messaggio di indisponibilità GPT e NON modifica il mondo.
+- Questi commit sono codice scritto e salvato, NON ancora confermati da compilazione o test in Minecraft. Nessuna GUI, pianificazione o protezione automatica implementata.
+- Prima di qualsiasi scrittura nel mondo implementare controlli d'ingombro, classificazione conservativa, conferma esplicita e backup verificato.
