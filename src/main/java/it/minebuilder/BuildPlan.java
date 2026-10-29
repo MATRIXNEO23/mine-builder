@@ -112,6 +112,52 @@ public final class BuildPlan {
         return new BuildPlan(result);
     }
 
+    /** Large ornamental cherry tree: organic trunk, spreading branches and pink canopy. */
+    public static BuildPlan cherryTree(BlockPos origin) {
+        Map<BlockPos, BlockState> cells = new LinkedHashMap<>();
+        BlockState trunk = Registries.BLOCK.get(new Identifier("minecraft:cherry_log")).getDefaultState();
+        BlockState leaves = Registries.BLOCK.get(new Identifier("minecraft:cherry_leaves")).getDefaultState();
+        int height = 17;
+        for (int y = 0; y <= height; y++) {
+            int x = y > 10 ? 1 : 0;
+            int z = y > 13 ? 1 : 0;
+            put(cells, origin, x, y, z, trunk);
+            if (y < 8) {
+                put(cells, origin, x + 1, y, z, trunk);
+                put(cells, origin, x, y, z + 1, trunk);
+            }
+        }
+        int[][] branches = {{1,0},{-1,0},{0,1},{0,-1},{1,1},{-1,-1},{1,-1},{-1,1}};
+        for (int i = 0; i < branches.length; i++) {
+            int dx = branches[i][0], dz = branches[i][1];
+            int startY = 10 + (i % 4);
+            int length = 5 + (i % 3);
+            for (int step = 1; step <= length; step++) {
+                int y = startY + step / 3;
+                put(cells, origin, dx * step, y, dz * step, trunk);
+            }
+            int cx = dx * length, cy = startY + length / 3, cz = dz * length;
+            for (int x = -3; x <= 3; x++)
+                for (int y = -2; y <= 3; y++)
+                    for (int z = -3; z <= 3; z++) {
+                        double distance = x*x / 10.0 + y*y / 6.0 + z*z / 10.0;
+                        if (distance <= 1.0 && ((x * 17 + y * 11 + z * 7 + i) & 7) != 0) {
+                            BlockPos at = origin.add(cx + x, cy + y, cz + z);
+                            cells.putIfAbsent(at, leaves);
+                        }
+                    }
+        }
+        for (int x = -4; x <= 4; x++)
+            for (int y = 14; y <= 21; y++)
+                for (int z = -4; z <= 4; z++) {
+                    double distance = x*x / 19.0 + (y-17)*(y-17) / 15.0 + z*z / 19.0;
+                    if (distance <= 1.0) cells.putIfAbsent(origin.add(x, y, z), leaves);
+                }
+        List<Placement> result = new ArrayList<>();
+        cells.forEach((pos, state) -> result.add(new Placement(pos, state)));
+        return fromPlacements(result);
+    }
+
     private static void put(Map<BlockPos, BlockState> cells, BlockPos origin,
                             int x, int y, int z, BlockState state) {
         cells.put(origin.add(x, y, z), state);
