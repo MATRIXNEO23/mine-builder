@@ -36,6 +36,8 @@ public final class BancoIaScreen extends Screen {
     private BuildPlan lastPlan;
     private String selectedBlueprint;
     private int blueprintIndex;
+    private static String autoRecoveredWorld;
+    private boolean journalRecoveryRunning;
 
     public BancoIaScreen() {
         super(Text.literal("Banco IA - Mine Builder"));
@@ -106,6 +108,7 @@ public final class BancoIaScreen extends Screen {
             .dimensions(left, height - 26, panel, 20).build());
         refreshBlueprints();
         if (prompt != null && !savedTab) setInitialFocus(prompt);
+        autoRecoverJournal();
     }
 
     private void saveBlueprint() {
@@ -205,6 +208,7 @@ public final class BancoIaScreen extends Screen {
                         if (pendingLogin == receiver) {
                             status = Text.literal(message);
                             pendingLogin = null;
+                            if (accessToken != null && selectedModel != null) autoRecoverJournal();
                         }
                         receiver.close();
                     });
@@ -215,6 +219,15 @@ public final class BancoIaScreen extends Screen {
         }
     }
 
+    private void autoRecoverJournal() {
+        if (client == null || client.getServer() == null || accessToken == null
+            || selectedModel == null || journalRecoveryRunning) return;
+        String world = client.getServer().getSavePath(net.minecraft.util.WorldSavePath.ROOT)
+            .toAbsolutePath().normalize().toString();
+        if (world.equals(autoRecoveredWorld)) return;
+        autoRecoveredWorld = world;
+        recoverJournal();
+    }
     private void recoverJournal() {
         if (client == null || client.player == null || !client.isInSingleplayer()) {
             status = Text.literal("Recupero disponibile solo in singleplayer."); return;
