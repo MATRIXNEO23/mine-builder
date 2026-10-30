@@ -131,6 +131,13 @@ public final class ComponentGeometryGenerator {
                         part = parsed;
                         break;
                     } catch (RuntimeException ex) {
+                        // A project that really exceeds the total block limit must stop.
+                        // Asking GPT to shrink architecture would silently lose fidelity.
+                        String detail = String.valueOf(ex.getMessage());
+                        if (detail.contains("oltre 2 milioni") || detail.contains("2000000"))
+                            throw new IOException("Progetto troppo grande per il motore attuale: "
+                                + "servono componenti su disco senza limite aggregato. "
+                                + "Dettagli e diari conservati; nessun blocco costruito.", ex);
                         failure = ex;
                         progress.accept("Componente " + component.id() + ": nuovo tentativo");
                     }
