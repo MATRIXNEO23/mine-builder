@@ -42,3 +42,14 @@
 - Correzioni: recupero dei diari singoli e multipli, file blueprint GZIP in streaming con lettura storica, validazione degli header GPT, gestione JSON malformato, nessun taglio silenzioso oltre limite, sistema a componenti.
 - Non classificare come `testato nel mondo`: serve prima l'esecuzione Minecraft e prova di sicurezza/restart su mondo nuovo.
 - Prossimo: test gioco su un mondo dedicato, correggere crash/lag/preflight, valutare merge solo con decisione distinta.
+
+## CP-2026-10-30-005 — 30 ottobre 2026 — consegna di fine sessione, build preview conservata
+
+- L'utente ha chiesto espressamente di salvare la continuità prima di dormire: questo checkpoint è il punto ufficiale di ripresa.
+- Repository: `MATRIXNEO23/mine-builder`. Ramo **attivo** `feature/composite-large-builds-20261030`, PR #1 DRAFT e NON fusa. HEAD verificato **prima** del checkpoint: `d219bbe1d6521f4a488bd9d95dd443ae3fa56a14`. Main resta `7e7e5a3aa4d8315de121e9d52a67d43ba0b9b510`.
+- **Ultima CI verificata:** run `40995790996` SUCCESS sul commit `d219bbe1d6521f4a488bd9d95dd443ae3fa56a14`, preceduto da `40995679462` SUCCESS e `40995555653` SUCCESS (pubblicazione JAR).
+- **Release conservata:** `https://github.com/MATRIXNEO23/mine-builder/releases/tag/mine-builder-composite-preview`, JAR Fabric 1.20.1 da 134942 byte e `SHA256SUMS.txt` (SHA256 `61a890ee96173518ebe16176195a882f87080268fceaf7a9a993b12f1739fe81`). La preview non sostituisce la Release di main; tag inizialmente creato su `c2b859b8`.
+- Implementazioni di codice precedenti al checkpoint: progetto globale a componenti, manif. immutabile 2..64 parti, limiti dettagli ±2000, controlli conflitto pre-journal, recupero journal singolo/composito, GZIP streaming per blueprint con compatibilità vecchi JSON, validazione contratti GPT e retry malformati, build CI in verde.
+- **NESSUN test in Minecraft reale documentato** per la preview. Inferenza GPT con quota inclusa non validata. Limite aggregato 2 milioni, performance, backup/rollback, protezione blocchi artificiali, giunzioni architettoniche e fedeltà 1:1 ancora non risolti.
+- Per la ripresa: prima leggere `continuity/HANDOFF.md` e `continuity/STATE.md` **sul ramo attivo**, verificare di nuovo l'HEAD e CI; poi test della preview **solo su mondo nuovo** e registrare risultati. Non eseguire merge né sovrascrivere mondi precedenti. Nessun costo aggiuntivo.
+- Questa operazione salva **solo documentazione di continuità**, senza toccare codice, JAR o mondi. SHA della presente operazione da verificare nella cronologia GitHub, non inventare un identificatore nel checkpoint.

@@ -1,3 +1,45 @@
+# STATO ATTUALE — Mine Builder (salvataggio continuità 30 ottobre 2026)
+
+> **Leggere questa sezione prima dello storico sotto.** Snapshot verificato al commit `d219bbe1d6521f4a488bd9d95dd443ae3fa56a14` del ramo `feature/composite-large-builds-20261030`; il commit del presente checkpoint sarà successivo e dovrà essere verificato con GitHub. Il contenuto sottostante contiene anche sezioni storiche, talvolta obsolete: NON trattarle come stato attuale.
+
+## Identità e riferimenti canonici
+- Repository: `MATRIXNEO23/mine-builder`.
+- **Sviluppo ATTIVO:** `feature/composite-large-builds-20261030`, pull request **#1 DRAFT**, aperta e non fusa: https://github.com/MATRIXNEO23/mine-builder/pull/1
+- **Main non toccato:** `7e7e5a3aa4d8315de121e9d52a67d43ba0b9b510`.
+- **HEAD di sviluppo verificato prima di questo checkpoint:** `d219bbe1d6521f4a488bd9d95dd443ae3fa56a14`.
+- Il workflow grigio `40992403280` su `5582d5ad` era **CANCELLED**, non fallito. Un workflow successivo su main era verde: `40992419917`.
+- **Ultima CI sul ramo prima del checkpoint:** `40995790996`, SUCCESS, per il commit `d219bbe1d6521f4a488bd9d95dd443ae3fa56a14`. La nuova CI generata dal checkpoint deve essere controllata a parte.
+- **Anteprima JAR separata confermata:** https://github.com/MATRIXNEO23/mine-builder/releases/tag/mine-builder-composite-preview — `Mine-Builder-v0.1.0-Minecraft-1.20.1-Fabric.jar` (134942 byte), con `SHA256SUMS.txt`; SHA256 JAR `61a890ee96173518ebe16176195a882f87080268fceaf7a9a993b12f1739fe81`. La release fu creata dal run `40995555653` (SUCCESS, sorgente `c2b859b8`); i commit da quel codice fino al checkpoint precedente sono documentazione soltanto. **Non confondere preview con `mine-builder-latest` di main**.
+
+## Codice implementato, verificato come compilabile (NON validato nel mondo Minecraft)
+1. Fabric 1.20.1 / Java 17 / Prism; Banco IA e interfaccia di progettazione; codice OAuth PKCE e inferenza GPT in streaming; esecutore a sezioni e checkpoint locali preesistenti.
+2. Contratto GPT per selezione `GEOMETRY=SINGLE` oppure `GEOMETRY=COMPONENTS`; progetto globale prima della geometria per grandi stadi, complessi o piccoli quartieri.
+3. `ComponentManifest` con 2..64 componenti, ID e limiti immutabili; generazione JSON per componente, validazione dei blocchi nei suoi bounds, controlli dei conflitti tra componenti **prima** del salvataggio e verifica finale della geometria prima di poter costruire.
+4. Coordinate di dettaglio ora coerenti fino a ±2000 anziché un residuo ±128; limite globale **2 milioni di posizioni**, non rimosso.
+5. Diario per-mondo con scritture atomiche; recupero dei componenti validi e delle generazioni precedenti `complete-geometry.json`; scelta del diario per ultima modifica, non per nome UUID.
+6. Salvataggio blueprint streaming GZIP e lettura retrocompatibile dei vecchi `.json`; rimosso doppio parsing di grandi blueprint sul render thread, protette richieste di generazione concorrenti.
+7. Convalida dell'intestazione di pianificazione GPT, un tentativo di correzione e retry di JSON invalidi; progetti oltre limite si arrestano senza ridimensionarli di nascosto.
+8. CI sulle pull request con test di contratto, manifest, build Fabric e mock inferenza. Il workflow pubblica la release **preview separata** soltanto dopo i passaggi riusciti; il JAR di main non è sostituito.
+
+## Gate mancanti / rischi reali
+- **NESSUN collaudo runtime Minecraft** di questa anteprima è documentato: né generazione architettonica effettiva, né interruzione/ripresa dopo crash, né prevenzione delle modifiche a edifici già esistenti.
+- Connessione GPT tramite quota ChatGPT inclusa, consenso, modelli disponibili e assenza di spese **da verificare su un account reale**; i test CI sono mock e compilazione, non prova di inferenza gratuita.
+- **Protezione mondo incompleta:** nessuna garanzia di backup/rollback recuperabile, identificazione certa di blocchi piazzati dall'utente, protezione preventiva globale e anteprima completa. Testare **solo in una nuova istanza Prism e in un mondo nuovo**; non installare su mondi importanti.
+- **Prestazioni:** limite 2 milioni di blocchi, max 64 componenti, assemblaggio globale ancora in memoria, save chunk sincrono e controlli con possibili blocchi del tick; necessaria misura sul PC reale.
+- **Fedeltà 1:1:** le fonti Wikimedia/Wikipedia non garantiscono misure/planimetrie verificate; il JSON `complete=true` non prova copertura delle superfici, percorribilità, giunzioni tra tetti e gradinate o riproduzione accurata di San Siro / San Vendemiano.
+- Mantenere distinte **funzione scritta**, **CI verde**, **test reale in gioco**, **approvazione/merge**. Nessun merge automatico.
+
+## Prossima azione esatta
+1. Rileggere questo snapshot, controllare HEAD, PR #1, ultimo workflow e asset della preview; riconciliare eventuali differenze, senza ripartire da zero.
+2. **Test in nuova istanza Prism 1.20.1 Fabric/Java 17 e mondo nuovo** della build `mine-builder-composite-preview`: piccola casa (SINGLE), edificio a più ali, mini-quartiere/stadio (COMPONENTS), porte/finestre/tetti/collegamenti, posizione/rotazione, console ed errori.
+3. Test negativo: area occupata, chunk lontani, limiti altezza, GPT/JSON malformato, quota esaurita; interrompere/riaprire e verificare salvataggi, diari e ripresa. Conservare screenshot, coordinate e log; **non cancellare journal/progetti esistenti**.
+4. Solo dopo i test correggere regressioni e misurare il carico sul PC; valutare separatamente se adottare la PR. Obiettivo successivo: motore davvero scalabile a componenti su disco oltre 2 milioni di blocchi, con planimetrie/fonti e controlli di giunzione.
+5. Vincoli sempre: **ZERO costi aggiuntivi** (nessuna API a consumo, crediti, hosting, addebiti o fallback a pagamento); un solo JAR Minecraft locale; realismo 1:1 senza tagliare dettagli per velocità; niente perdita dei salvataggi, né modifica di mondi importanti senza backup e autorizzazione.
+
+**Documenti di approfondimento:** `docs/LARGE_BUILDS_REVIEW_2026-10-30.md`, `docs/ARCHITECTURE_V3.md`, `docs/INSTALLAZIONE.md`, `AGENTS.md`, `continuity/PROTOCOL.md`. Lo storico seguente rimane intatto per tracciabilità.
+
+---
+
 ## Milestone: build testabile grandi edifici — 30 ottobre 2026
 
 **Anteprima isolata pubblicata:** [mine-builder-composite-preview](https://github.com/MATRIXNEO23/mine-builder/releases/tag/mine-builder-composite-preview), JAR Minecraft 1.20.1 Fabric Java 17 e SHA256SUMS, CI 40995555653 SUCCESS sul commit c2b859b8. Ramo `feature/composite-large-builds-20261030`, PR #1, **NON integrato in main**. La release preview non deve essere confusa con `mine-builder-latest`.
