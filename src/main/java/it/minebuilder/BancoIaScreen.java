@@ -734,7 +734,38 @@ public final class BancoIaScreen extends Screen {
                     generatorPages = pages.size();
                     generatorBlocks = validated.size();
                     generatorStage = "Pagina " + pages.size() + " validata e salvata";
-                    if (object.get("complete").getAsBoolean()) return "PAGED:" + String.join("##PAGE##", pages);
+                    if (object.get("complete").getAsBoolean()) {
+                        // A single canonical block map is the source of truth. Derive
+                        // spatial sections from coordinates, never from GPT page borders.
+                        BuildPlan completePlan = BuildPlan.fromPlacements(validated);
+                        completePlan.validateSections();
+                        java.util.List<BuildPlan> sections = completePlan.sections();
+                        com.google.gson.JsonObject manifest = new com.google.gson.JsonObject();
+                        manifest.addProperty("schema", 1);
+                        manifest.addProperty("blocks", validated.size());
+                        manifest.addProperty("sections", sections.size());
+                        com.google.gson.JsonArray entries = new com.google.gson.JsonArray();
+                        for (int index = 0; index < sections.size(); index++) {
+                            BuildPlan section = sections.get(index);
+                            var first = section.placements().get(0).pos();
+                            com.google.gson.JsonObject entry = new com.google.gson.JsonObject();
+                            entry.addProperty("id", index);
+                            entry.addProperty("chunkX", Math.floorDiv(first.getX(), 16));
+                            entry.addProperty("chunkZ", Math.floorDiv(first.getZ(), 16));
+                            entry.addProperty("blocks", section.placements().size());
+                            entries.add(entry);
+                        }
+                        manifest.add("entries", entries);
+                        Path manifestTemp = java.nio.file.Files.createTempFile(jobDir, "sections-", ".tmp");
+                        try {
+                            java.nio.file.Files.writeString(manifestTemp, manifest.toString());
+                            java.nio.file.Files.move(manifestTemp, jobDir.resolve("sections-manifest.json"),
+                                java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                        } finally {
+                            java.nio.file.Files.deleteIfExists(manifestTemp);
+                        }
+                        return "PAGED:" + String.join("##PAGE##", pages);
+                    }
                     previous += " Page " + (page + 1) + ": " + answer.substring(0, Math.min(350, answer.length()));
                 }
                 throw new IllegalStateException("Progetto oltre 100 pagine: generazione sospesa in sicurezza");
