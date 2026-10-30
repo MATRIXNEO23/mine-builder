@@ -41,7 +41,7 @@ public final class BuildExecutor {
         String key = client.world.getRegistryKey().getValue().toString();
         if (inFlight || !pending.isEmpty() || !remainingSections.isEmpty())
             throw new IllegalStateException("A build is already running; finish or cancel it first");
-        plan.validateSections();
+        BlueprintContract.validateAndPartition(plan);
         validateHeight(client, plan);
         try {
             Path existing = progressPath(client);
