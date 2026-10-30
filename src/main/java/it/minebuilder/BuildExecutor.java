@@ -19,7 +19,6 @@ public final class BuildExecutor {
     private static final int MAX_BATCH = 32;
     private static final long TIME_BUDGET_NS = 2_000_000L;
     private static int batchSize = 16;
-    private static volatile int pauseTicks = 0;
     private static Queue<BuildPlan.Placement> pending = new ArrayDeque<>();
     private static Queue<BuildPlan> remainingSections = new ArrayDeque<>();
     private static int completedSections;
@@ -69,7 +68,6 @@ public final class BuildExecutor {
             throw new IllegalStateException("Impossibile salvare il progetto prima di costruire", e);
         }
         batchSize = 16;
-        pauseTicks = 0;
         activePlan = plan;
         activeDimension = key;
         remainingSections = new ArrayDeque<>(plan.sections());
@@ -85,7 +83,6 @@ public final class BuildExecutor {
 
     public static void tick(MinecraftClient client) {
         if (inFlight) return;
-        if (pauseTicks > 0) { pauseTicks--; return; }
         if (pending.isEmpty() && !remainingSections.isEmpty()) {
             currentSection = remainingSections.remove().placements();
         pending = new ArrayDeque<>(currentSection);
@@ -104,22 +101,6 @@ public final class BuildExecutor {
             try {
                 var world = server.getWorld(dimension);
                 if (world == null || server != ownerServer) return;
-                // Use actual integrated-server tick pressure, not only placement speed.
-                // Minecraft 1.20.1 Yarn exposes the rolling tick durations in nanoseconds.
-                long[] tickTimes = server.getTickTimes();
-                double sumNs = 0;
-                for (long duration : tickTimes) sumNs += duration;
-                float averageMspt = tickTimes.length == 0 ? 0.0f
-                    : (float)(sumNs / tickTimes.length / 1_000_000.0);
-                if (averageMspt >= 48.0f) {
-                    batchSize = MIN_BATCH;
-                    pauseTicks = averageMspt >= 55.0f ? 20 : 5;
-                    return;
-                }
-                if (averageMspt >= 40.0f)
-                    batchSize = MIN_BATCH;
-                else if (averageMspt >= 30.0f)
-                    batchSize = Math.min(batchSize, 8);
                 if (!preflightDone) {
                     // Prevent uncontained fluids from flowing into the surrounding world.
                     Map<BlockPos, BlockState> planned = new HashMap<>();
@@ -336,8 +317,6 @@ public final class BuildExecutor {
         if (done < 0 || done > sections.size()) throw new IOException("Avanzamento non valido");
         if (done == sections.size()) throw new IOException("Costruzione gia completata");
         plan.validateSections();
-        batchSize = 16;
-        pauseTicks = 0;
         activePlan = plan;
         activeDimension = dimension;
         ownerServer = client.getServer();
