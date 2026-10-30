@@ -73,6 +73,8 @@ public final class BancoIaScreen extends Screen {
     private static volatile boolean streamingConfirmed;
     private boolean journalRecoveryRunning;
 
+    private record GenerationOutcome(String reply, BuildPlan plan) {}
+
     public BancoIaScreen() {
         super(Text.literal("Banco IA - Mine Builder"));
     }
@@ -303,6 +305,11 @@ public final class BancoIaScreen extends Screen {
                 if (xyz.length != 3) continue;
                 BlockPos origin = new BlockPos(Integer.parseInt(xyz[0]),
                     Integer.parseInt(xyz[1]), Integer.parseInt(xyz[2]));
+                // New immutable composite journal takes precedence over legacy paged recovery.
+                if (java.nio.file.Files.isRegularFile(job.resolve("component-manifest.json"))) {
+                    resumeCompositeJournal(job, origin);
+                    return;
+                }
                 java.util.List<Path> files;
                 try (var stream = java.nio.file.Files.list(job)) {
                     files = stream.filter(p -> p.getFileName().toString().matches("[0-9]{4}\\.json"))
@@ -343,6 +350,49 @@ public final class BancoIaScreen extends Screen {
             status = Text.literal("Recupero diario: " + e.getMessage());
         }
     }
+    private void resumeCompositeJournal(Path job, BlockPos origin) {
+        if (journalRecoveryRunning || generatorRunning) {
+            status = Text.literal("Recupero o generazione già in corso.");
+            return;
+        }
+        journalRecoveryRunning = true;
+        generatorRunning = true;
+        generatorStage = "Recupero progetto a componenti";
+        logConsole("Recupero componenti da " + job.getFileName());
+        final String token = accessToken, model = selectedModel;
+        CompletableFuture.supplyAsync(() -> {
+            try {
+                if (token == null || model == null)
+                    return ComponentGeometryGenerator.loadSaved(job, origin);
+                String request = java.nio.file.Files.readString(job.resolve("request.txt"));
+                String masterPlan = java.nio.file.Files.readString(job.resolve("master-plan.txt"));
+                DesignContract.ResearchMode mode = DesignContract.ResearchMode.valueOf(
+                    java.nio.file.Files.readString(job.resolve("research-mode.txt")).trim());
+                DesignContract design = new DesignContract(request, masterPlan, mode);
+                return ComponentGeometryGenerator.generate(token, model, design, origin,
+                    stage -> { generatorStage = stage; logConsole(stage); },
+                    GenerationJournal.reopen(job)).blueprint();
+            } catch (Exception ex) {
+                throw new java.util.concurrent.CompletionException(ex);
+            }
+        }).whenComplete((plan, error) -> {
+            generatorRunning = false;
+            journalRecoveryRunning = false;
+            if (client != null) client.execute(() -> {
+                if (error != null) {
+                    Throwable failure = error.getCause() == null ? error : error.getCause();
+                    status = Text.literal("Recupero componenti: " + failure.getMessage());
+                    logConsole("ERRORE recupero componenti: " + failure.getMessage());
+                } else {
+                    pendingPlan = plan;
+                    lastPlan = plan;
+                    status = Text.literal("Progetto recuperato: verifica e premi Costruisci.");
+                    logConsole("Progetto a componenti recuperato: " + plan.placements().size() + " blocchi");
+                }
+            });
+        });
+    }
+
     private void continueJournal(Path job, BlockPos origin, int startPage,
                                  java.util.Map<BlockPos, net.minecraft.block.BlockState> existing) {
         String token = accessToken, model = selectedModel;
@@ -573,7 +623,7 @@ public final class BancoIaScreen extends Screen {
         logConsole("Nuova richiesta: " + message);
         CompletableFuture.supplyAsync(() -> {
             try {
-                if (!build) return ChatGptInference.ask(token, model, request);
+                if (!build) return new GenerationOutcome(ChatGptInference.ask(token, model, request), null);
                 DesignContract design = ArchitecturalPlanner.plan(token, model, message, stage -> {
                     generatorStage = stage;
                     logConsole(stage);
@@ -590,42 +640,30 @@ public final class BancoIaScreen extends Screen {
                     token, model, design, origin, stage -> {
                         generatorStage = stage;
                         logConsole(stage);
-                    });
+                    }, journal);
                 String geometry = generated.json();
                 BuildPlan completeGeometry = generated.blueprint();
-                journal.write("complete-geometry.json", geometry);
+                if (geometry != null) journal.write("complete-geometry.json", geometry);
                 generatorPages = 1;
                 generatorBlocks = completeGeometry.placements().size();
                 generatorStage = "Progetto completo verificato: "
                     + completeGeometry.sections().size() + " sezioni";
-                return "COMPLETE_GEOMETRY:" + geometry;
+                return new GenerationOutcome("Progetto completo", completeGeometry);
             } catch (Exception e) {
-                return "Errore GPT: " + e.getMessage();
+                return new GenerationOutcome("Errore GPT: " + e.getMessage(), null);
             }
-        }).thenAccept(reply -> {
+        }).thenAccept(outcome -> {
+            String reply = outcome.reply();
             generatorRunning = false;
             logConsole(reply.startsWith("Errore GPT:") ? "ERRORE: " + reply.substring(0, Math.min(350, reply.length())) : "Risposta GPT ricevuta; conversione blueprint");
             generatorStage = reply.startsWith("Errore GPT:") ? "Interrotto: verifica dettagli" : "Generazione conclusa";
             if (client != null) client.execute(() -> {
                 if (build && !reply.startsWith("Errore GPT:")) {
                     try {
-                        String json = reply.trim();
-                        if (json.startsWith("```")) {
-                            int first = json.indexOf('\n');
-                            int last = json.lastIndexOf("```");
-                            if (first >= 0 && last > first) json = json.substring(first + 1, last).trim();
-                        }
-                        // Accept a JSON object wrapped in explanatory text, without executing commands.
-                        if (!json.startsWith("{") && !json.startsWith("PAGED:")
-                                && !json.startsWith("COMPLETE_GEOMETRY:")) {
-                            int start = json.indexOf('{');
-                            int end = json.lastIndexOf('}');
-                            if (start >= 0 && end > start) json = json.substring(start, end + 1);
-                        }
-                        if (json.startsWith("COMPLETE_GEOMETRY:"))
-                            pendingPlan = BuildPlan.parseComplete(
-                                json.substring("COMPLETE_GEOMETRY:".length()), origin);
-                        else pendingPlan = BuildPlan.parse(json, origin);
+                        // The already validated blueprint is passed directly; avoid
+                        // serializing/parsing up to 2 million blocks on the render thread.
+                        pendingPlan = outcome.plan();
+                        if (pendingPlan == null) throw new IllegalStateException("Blueprint assente");
                         if (streamingConfirmed) {
                             if (streamingJob != null) {
                                 try {
