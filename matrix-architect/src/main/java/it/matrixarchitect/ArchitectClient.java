@@ -45,9 +45,7 @@ public final class ArchitectClient implements ClientModInitializer {
    while(unlock.wasPressed()){locked=false;height=0;}
    while(place.wasPressed())if(WorldEditBridge.ready(c)&&target!=null){
     BlockPos anchor=target.up(height);
-    String error=WorldEditBridge.placementHeightError(WorldEditBridge.clipboard,anchor,WorldEditBridge.turns,c.world.getBottomY(),c.world.getTopY());
-    if(error!=null)WorldEditBridge.event("ERRORE posa: "+error);
-    else WorldEditBridge.paste(c,anchor);
+    WorldEditBridge.paste(c,anchor);
    }
    while(undo.wasPressed())WorldEditBridge.undo(c);
   });
