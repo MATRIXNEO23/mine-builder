@@ -42,12 +42,14 @@ public final class BancoIaScreen extends Screen {
         String line = java.time.LocalTime.now().withNano(0) + " | " + message;
         consoleEvents.add(line);
         while (consoleEvents.size() > 200) consoleEvents.remove(0);
-        try {
-            Path folder = net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("minebuilder");
-            java.nio.file.Files.createDirectories(folder);
-            java.nio.file.Files.writeString(folder.resolve("generation-console.log"), line + System.lineSeparator(),
-                java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
-        } catch (Exception ignored) { /* Console remains usable if disk logging fails. */ }
+        java.util.concurrent.CompletableFuture.runAsync(() -> {
+            try {
+                Path folder = net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("minebuilder");
+                java.nio.file.Files.createDirectories(folder);
+                java.nio.file.Files.writeString(folder.resolve("generation-console.log"), line + System.lineSeparator(),
+                    java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+            } catch (Exception ignored) { /* Console remains usable if disk logging fails. */ }
+        });
     }
     private static void pollConsoleStage() {
         String stage = generatorStage + (generatorRunning ? " [in corso]" : " [terminato]");
@@ -885,9 +887,11 @@ public final class BancoIaScreen extends Screen {
                             + pendingPlan.geometryReport() + " " + pendingPlan.architectureWarnings()
                             + " Premi Costruisci.";
                         status = Text.literal("Progetto pronto, conferma.");
+                        logConsole("Progetto pronto: conferma Costruisci");
                     } catch (Exception e) {
                         lastReply = "Progetto non valido (" + e.getClass().getSimpleName() + "): "
                             + e.getMessage() + ". Controlla la geometria e il JSON; usa Dettagli e controlli per copiare il messaggio.";
+                        logConsole("ERRORE blueprint: " + e.getClass().getSimpleName() + ": " + e.getMessage());
                         status = Text.literal("Progetto non valido.");
                     }
                 } else {
