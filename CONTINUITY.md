@@ -1,3 +1,6 @@
+## 2026-10-30 — Review regressioni e ripristino GPT-led
+Su richiesta review: confermato che fast-path casa a dimensione fissa e gate validateSimpleHouse non rispettano intento utente. Rimossi in commit e84a3dc; tutte le tipologie tornano a brief architettonico + master plan globale GPT + geometria completa, con soli controlli tecnici. Review statica evidenzia ancora rischi: tre chiamate GPT sequenziali e possibile lentezza; blueprint singolo può superare limiti output; assenza di test automatici di architettura e UI; console eventi solo durante schermata aperta e log su file sincrono; preflight per sezione e save(true) possono bloccare tick; progressi su mondi e origine da verificare. Non dichiarare questi problemi risolti senza fix e test dedicati. Ultima build CI in corso. Non cancellare salvataggi o integrare modifiche sperimentali senza verifica.
+
 ## 2026-10-30 — Screenshot casa non riconoscibile: gate geometrico
 Foto utente: struttura stretta e alta simile a torre/statua, non una casa. Commit fb9c988: validateSimpleHouse su progetto compatto PRIMA del salvataggio e costruzione; rifiuta solidi <90, footprint X <8/Z <7, altezza <4 o >12. Non garantisce tetto/porte/interior o qualità, ma blocca la specifica anomalia mostrata. Progetti preesistenti non modificati; test in gioco e CI richiesti.
 
