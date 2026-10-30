@@ -1,3 +1,10 @@
+## Stato aggiornato — 30 ottobre 2026 — migrazione v3 in corso
+La sezione storica seguente è un archivio del 29 ottobre, NON lo stato attuale. Il repository contiene ora GUI Banco IA, OAuth, inferenza GPT, parser geometrico ed esecutore; CI precedente verde ma non test in-game. Audit dell'HEAD precedente: 51aa194b8d7535e136ae1bef341078fead755f28.
+
+Interventi attuali: `DesignContract.java` (GPT sceglie NONE/INSPIRATION/RECONSTRUCTION e fornisce master plan), `BlueprintContract.java` (confine tecnico), `BancoIaScreen.java` (ricerca automatica; rimossi brief/master plan duplicati e fallback paginato irraggiungibile), `BuildExecutor.java` (validazione blueprint condivisa), `docs/ARCHITECTURE_V3.md` (contratti e limiti). Commit fino a 26ac2938; CI di questo set ancora da confermare. Nessun test in gioco eseguito in questa sessione.
+
+NON COMPLETATO: estrazione completa dell'orchestrazione dalla GUI; ricerca web oltre Wikimedia; generazione incrementale robusta di progetti enormi; miglioramento salvataggi e identità mondo; test runtime e qualità. Non dichiarare migrazione conclusa. Prossima azione: verificare CI, correggere eventuali errori, poi migrare orchestrazione e progettare generazione geometrica a componenti senza perdita di continuità.
+
 # Stato corrente — Mine Builder
 
 Aggiornato 29 ottobre 2026. Repository canonica: MATRIXNEO23/mine-builder, main.
