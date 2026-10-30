@@ -35,6 +35,28 @@ public final class BancoIaScreen extends Screen {
     private static volatile int generatorPages = 0;
     private static volatile int generatorBlocks = 0;
     private static volatile boolean generatorRunning = false;
+    private static final java.util.List<String> consoleEvents = new java.util.concurrent.CopyOnWriteArrayList<>();
+    private static volatile String consoleLastStage = "";
+    private static volatile long consoleStageStarted = System.currentTimeMillis();
+    private static void logConsole(String message) {
+        String line = java.time.LocalTime.now().withNano(0) + " | " + message;
+        consoleEvents.add(line);
+        while (consoleEvents.size() > 200) consoleEvents.remove(0);
+        try {
+            Path folder = net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("minebuilder");
+            java.nio.file.Files.createDirectories(folder);
+            java.nio.file.Files.writeString(folder.resolve("generation-console.log"), line + System.lineSeparator(),
+                java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+        } catch (Exception ignored) { /* Console remains usable if disk logging fails. */ }
+    }
+    private static void pollConsoleStage() {
+        String stage = generatorStage + (generatorRunning ? " [in corso]" : " [terminato]");
+        if (!stage.equals(consoleLastStage)) {
+            consoleLastStage = stage;
+            consoleStageStarted = System.currentTimeMillis();
+            logConsole(stage);
+        }
+    }
     private static BuildPlan placementPlan;
     private BuildPlan pendingPlan;
     private BuildPlan lastPlan;
@@ -88,6 +110,9 @@ public final class BancoIaScreen extends Screen {
                     status = Text.literal("Ripresa non riuscita: " + e.getMessage());
                 }
             }).dimensions(left, top + 162, panel, 20).build());
+            addDrawableChild(ButtonWidget.builder(Text.literal("Console generazione"), button -> {
+                if (client != null) client.setScreen(new ConsoleScreen(this));
+            }).dimensions(left, top + 216, panel, 20).build());
             addDrawableChild(ButtonWidget.builder(Text.literal("Dettagli e controlli"), button -> openDetails())
                 .dimensions(left, top + 136, panel, 20).build());
         } else {
@@ -866,6 +891,7 @@ public final class BancoIaScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+        pollConsoleStage();
         renderBackground(context);
         context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 12, 0xFFFFFF);
         String buildError = BuildExecutor.lastError();
@@ -901,6 +927,50 @@ public final class BancoIaScreen extends Screen {
             + (error.isEmpty() ? "" : "Errore costruzione: " + error + "\\n\\n")
             + (lastReply.isEmpty() ? "Nessuna risposta ancora." : lastReply);
         client.setScreen(new DetailsScreen(this, details));
+    }
+
+    private static final class ConsoleScreen extends Screen {
+        private final Screen previous;
+        private int scroll = 0;
+        private ConsoleScreen(Screen previous) {
+            super(Text.literal("Mine Builder - Console generazione"));
+            this.previous = previous;
+        }
+        @Override protected void init() {
+            addDrawableChild(ButtonWidget.builder(Text.literal("Indietro"), b -> close())
+                .dimensions(width / 2 - 154, height - 27, 100, 20).build());
+            addDrawableChild(ButtonWidget.builder(Text.literal("Precedenti"), b -> scroll += 8)
+                .dimensions(width / 2 - 50, height - 27, 100, 20).build());
+            addDrawableChild(ButtonWidget.builder(Text.literal("Recenti"), b -> scroll = Math.max(0, scroll - 8))
+                .dimensions(width / 2 + 54, height - 27, 100, 20).build());
+        }
+        @Override public void close() {
+            if (client != null) client.setScreen(previous);
+        }
+        @Override public boolean shouldPause() { return false; }
+        @Override public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+            pollConsoleStage();
+            renderBackground(context);
+            context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 12, 0xFFFFFF);
+            long elapsed = Math.max(0, (System.currentTimeMillis() - consoleStageStarted) / 1000);
+            String current = "Fase: " + generatorStage + (generatorRunning ? " | attiva " + elapsed + "s" : " | inattiva");
+            context.drawTextWithShadow(textRenderer, textRenderer.trimToWidth(current, width - 24), 12, 32, 0xAADDFF);
+            context.drawTextWithShadow(textRenderer,
+                "Blocchi: " + generatorBlocks + " | Pagine: " + generatorPages
+                    + " | Sezioni: " + BuildExecutor.sectionProgress(), 12, 47, 0xCCCCCC);
+            context.drawTextWithShadow(textRenderer, "Registro: config/minebuilder/generation-console.log", 12, 62, 0xAAAAAA);
+            int count = consoleEvents.size();
+            int visible = Math.max(1, (height - 116) / 12);
+            scroll = Math.min(scroll, Math.max(0, count - visible));
+            int end = count - scroll;
+            int start = Math.max(0, end - visible);
+            for (int i = start; i < end; i++) {
+                String line = consoleEvents.get(i);
+                context.drawTextWithShadow(textRenderer, textRenderer.trimToWidth(line, width - 24),
+                    12, 84 + (i - start) * 12, 0xDDEEDD);
+            }
+            super.render(context, mouseX, mouseY, delta);
+        }
     }
 
     private static final class DetailsScreen extends Screen {
