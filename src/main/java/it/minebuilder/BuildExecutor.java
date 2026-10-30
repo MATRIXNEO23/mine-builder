@@ -42,6 +42,7 @@ public final class BuildExecutor {
         if (inFlight || !pending.isEmpty() || !remainingSections.isEmpty())
             throw new IllegalStateException("A build is already running; finish or cancel it first");
         plan.validateSections();
+        validateHeight(client, plan);
         try {
             Path existing = progressPath(client);
             if (Files.isRegularFile(existing)) {
@@ -324,6 +325,7 @@ public final class BuildExecutor {
         if (done < 0 || done > sections.size()) throw new IOException("Avanzamento non valido");
         if (done == sections.size()) throw new IOException("Costruzione gia completata");
         plan.validateSections();
+        validateHeight(client, plan);
         batchSize = 16;
         cooldownTicks = 0;
         activePlan = plan;
@@ -351,6 +353,25 @@ public final class BuildExecutor {
         return inFlight || !pending.isEmpty() || !remainingSections.isEmpty();
     }
 
+    /** Check all positions before persisting or placing any part of a blueprint. */
+    public static void validateHeight(MinecraftClient client, BuildPlan plan) {
+        if (client == null || client.world == null) throw new IllegalStateException("Mondo non disponibile");
+        int bottom = client.world.getBottomY();
+        int top = client.world.getTopY();
+        for (var placement : plan.placements()) {
+            int y = placement.pos().getY();
+            if (y < bottom || y >= top) throw new IllegalArgumentException(
+                "Progetto fuori altezza: " + placement.pos().toShortString()
+                + " (Y valida " + bottom + ".." + (top - 1)
+                + "). Spostati a quota adatta o rigenera il progetto.");
+        }
+    }
+    public static String lastErrorFor(MinecraftClient client) {
+        if (client == null || client.world == null || ownerServer == null
+            || client.getServer() != ownerServer
+            || !worldKey.equals(client.world.getRegistryKey().getValue().toString())) return "";
+        return lastError;
+    }
     public static String lastError() { return lastError; }
     public static boolean preflightPassed() { return preflightDone; }
     public static int remaining() { return pending.size() + remainingSections.stream()
