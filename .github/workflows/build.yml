@@ -46,6 +46,23 @@ jobs:
           JAR=$(find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar' ! -name '*-dev.jar' | head -n 1)
           test -n "$JAR"
           cp "$JAR" Mine-Builder-v0.1.0-Minecraft-1.20.1-Fabric.jar
+      - name: Publish isolated composite preview JAR
+        if: github.event_name == 'pull_request' && github.head_ref == 'feature/composite-large-builds-20261030' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          TAG=mine-builder-composite-preview
+          FILE=Mine-Builder-v0.1.0-Minecraft-1.20.1-Fabric.jar
+          sha256sum "$FILE" > SHA256SUMS.txt
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$FILE" SHA256SUMS.txt --clobber
+          else
+            gh release create "$TAG" "$FILE" SHA256SUMS.txt \
+              --title "Mine Builder - anteprima grandi edifici e paesi" \
+              --notes "BUILD SPERIMENTALE: generazione a componenti, recupero journal e blueprint compressi. Usare SOLO una copia di mondo o un mondo nuovo. Non certificata per mondi importanti, uso GPT incluso da verificare; nessun fallback API a pagamento." \
+              --prerelease --target "$TARGET_SHA"
+          fi
       - name: Publish latest test build to GitHub Releases
         if: github.event_name != 'pull_request'
         env:
