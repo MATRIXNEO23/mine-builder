@@ -620,7 +620,10 @@ public final class BancoIaScreen extends Screen {
                         enriched += " Visual analysis unavailable; do not claim reference images were inspected.";
                     }
                 }
-                if (build) {
+                boolean simpleHouse = build && message.toLowerCase(java.util.Locale.ROOT)
+                    .matches(".*\\b(casa|casetta|house)\\b.*")
+                    && message.length() < 80;
+                if (build && !simpleHouse) {
                     generatorStage = "Progettazione architettonica";
                     logConsole("Fase avviata: Progettazione architettonica");
                     String architecturalBrief = ChatGptInference.ask(token, model,
@@ -685,7 +688,7 @@ public final class BancoIaScreen extends Screen {
                 generatorStage = "Geometria completa: un unico progetto";
                     logConsole("Fase avviata: Geometria completa: un unico progetto");
                 String geometry = ChatGptInference.ask(token, model,
-                    enriched + " Produce ONE COMPLETE JSON geometric blueprint for the ENTIRE "
+                    enriched + (simpleHouse ? " For this simple house, prioritize a recognizable habitable house: hollow interior, floor, four walls, clear door opening, glazed windows, complete roof with overhang, no giant solid cuboid filling rooms. Use explicit minecraft:air to cut openings after solid primitives. " : "") + " Produce ONE COMPLETE JSON geometric blueprint for the ENTIRE "
                     + "building, using compact cuboids and shapes for repeated structure, "
                     + "and explicit blocks only for fine detail. All coordinates and block "
                     + "materials are final and shared by every section. Do NOT split into "
