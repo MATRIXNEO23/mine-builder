@@ -14,7 +14,11 @@ import net.minecraft.util.WorldSavePath;
 
 /** Local singleplayer prototype: paced placement through the integrated server thread. */
 public final class BuildExecutor {
-    private static final int PER_BATCH = 16;
+    // Adaptive streaming: bounded placements AND a short server-thread time budget.
+    private static final int MIN_BATCH = 4;
+    private static final int MAX_BATCH = 32;
+    private static final long TIME_BUDGET_NS = 2_000_000L;
+    private static int batchSize = 16;
     private static Queue<BuildPlan.Placement> pending = new ArrayDeque<>();
     private static Queue<BuildPlan> remainingSections = new ArrayDeque<>();
     private static int completedSections;
@@ -63,6 +67,7 @@ public final class BuildExecutor {
         } catch (IOException e) {
             throw new IllegalStateException("Impossibile salvare il progetto prima di costruire", e);
         }
+        batchSize = 16;
         activePlan = plan;
         activeDimension = key;
         remainingSections = new ArrayDeque<>(plan.sections());
@@ -152,7 +157,9 @@ public final class BuildExecutor {
                     preflightDone = true;
                 }
                 int processed = 0;
-                while (processed < PER_BATCH && !pending.isEmpty()) {
+                long started = System.nanoTime();
+                while (processed < batchSize && !pending.isEmpty()) {
+                    if (processed > 0 && System.nanoTime() - started >= TIME_BUDGET_NS) break;
                     var entry = pending.peek();
                     BlockPos pos = entry.pos();
                     // Never discard unloaded chunks: retry on a later tick.
@@ -185,6 +192,12 @@ public final class BuildExecutor {
                     pending.remove();
                     processed++;
                 }
+                // Scale down under load; increase slowly when placements are cheap.
+                long elapsed = System.nanoTime() - started;
+                if (elapsed > TIME_BUDGET_NS)
+                    batchSize = Math.max(MIN_BATCH, batchSize / 2);
+                else if (processed == batchSize && elapsed < TIME_BUDGET_NS / 2)
+                    batchSize = Math.min(MAX_BATCH, batchSize + 2);
                 if (pending.isEmpty()) {
                     for (var expected : currentSection) {
                         if (!world.isChunkLoaded(expected.pos())
