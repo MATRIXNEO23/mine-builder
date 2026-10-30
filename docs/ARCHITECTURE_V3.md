@@ -29,6 +29,10 @@ Il progetto globale determina tipologia, geometria, assi, livelli, materiali, ci
 - Scrittura atomica dell'origine del progetto prima del checkpoint di avanzamento, per evitare un checkpoint apparentemente riprendibile senza origine.
 - Un tentativo di rigenerazione compatta quando il JSON geometrico non supera i limiti tecnici; nessuna costruzione parziale viene pubblicata.
 
+## Estensione dimensioni (quarta fase)
+- Rimosso il limite arbitrario di +/-128 blocchi X/Z e -32..128 Y dal parser geometrico: coordinate relative fino a +/-2000, coerenti con la libreria blueprint. L\u0027esecutore continua a verificare i limiti reali di altezza del mondo.
+- Rimangono il tetto di 2 milioni di blocchi espansi, il limite di risposta JSON e i limiti dei singoli primitivi. Questo NON equivale a supportare automaticamente intere città.
+
 ## NON ancora completato
 - Orchestrazione completa e journal ancora nella GUI: progettazione e generazione geometrica sono ora estratte in `ArchitecturalPlanner` e `GeometryGenerator`.
 - Ricerca web generale: Wikimedia Commons e Wikipedia non garantiscono planimetrie, misure né immagini pertinenti.
