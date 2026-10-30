@@ -29,7 +29,9 @@ final class WorldBackup {
 
  record Snapshot(java.util.List<BuildPlan.Placement> blocks,Map<BlockPos,String> nbt){}
  static Snapshot readLast(Path root,String dimension)throws Exception{
-  String name=Files.readString(root.resolve("last-backup.txt")).trim();
+  return read(root,dimension,Files.readString(root.resolve("last-backup.txt")).trim());
+ }
+ static Snapshot read(Path root,String dimension,String name)throws Exception{
   if(!name.matches("[a-zA-Z0-9-]+\\.json\\.gz"))throw new java.io.IOException("Nome backup non valido");
   var blocks=new ArrayList<BuildPlan.Placement>();Map<BlockPos,String> nbt=new HashMap<>();String savedDimension=null;
   try(var in=new java.util.zip.GZIPInputStream(Files.newInputStream(root.resolve("backups").resolve(name)));

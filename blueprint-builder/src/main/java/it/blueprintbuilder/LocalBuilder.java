@@ -5,7 +5,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.WorldSavePath;
 import java.nio.file.*;
 import java.util.*;
-/** Air-only placement. No terrain demolition. Chunk waits and global preflight precede mutations. */
+/** Complete-envelope placement with backup, chunk waits and global preflight before mutations. */
 final class LocalBuilder {
  static final List<String> log=new java.util.concurrent.CopyOnWriteArrayList<>();
  static volatile String phase="Nessun blueprint caricato";
@@ -24,13 +24,14 @@ final class LocalBuilder {
  private static volatile boolean inFlight;
  static void event(String text) { log.add(java.time.LocalTime.now().withNano(0)+" | "+text); while(log.size()>300)log.remove(0); }
  static void start(MinecraftClient c,BuildPlan plan) throws Exception {
-  if(running || inFlight || c.getServer()==null || !c.isInSingleplayer())throw new IllegalStateException("Mondo locale richiesto e nessun lavoro attivo");
+  if(running || inFlight || backingUp || c.getServer()==null || !c.isInSingleplayer())throw new IllegalStateException("Mondo locale richiesto e nessun lavoro attivo");
   for(var e:plan.placements())if(!c.world.isInBuildLimit(e.pos()))throw new IllegalArgumentException("Fuori limite mondo: "+e.pos());
   // Preserve an interrupted project before accepting a replacement.
   Path folder=c.getServer().getSavePath(WorldSavePath.ROOT).resolve("blueprintbuilder");Files.createDirectories(folder);
   Path marker=folder.resolve("active.txt");
   if(Files.exists(marker) && !Files.readString(marker).startsWith("COMPLETE"))
    throw new IllegalStateException("Progetto sospeso presente: usa Riprendi salvato");
+  Files.deleteIfExists(folder.resolve("restore-source.txt"));
   plan=clearEnvelope(plan);
   BlueprintLibrary.save(c,"active",plan);
   saveOrigin(c,plan);
@@ -60,9 +61,11 @@ final class LocalBuilder {
   return BuildPlan.fromPlacements(cells.entrySet().stream().map(e->new BuildPlan.Placement(e.getKey(),e.getValue())).toList());
  }
  static void restore(MinecraftClient c)throws Exception{
-  if(running || inFlight)throw new IllegalStateException("Lavoro in corso");
+  if(running || inFlight || backingUp)throw new IllegalStateException("Lavoro in corso");
   Path root=c.getServer().getSavePath(WorldSavePath.ROOT).resolve("blueprintbuilder");
-  var snapshot=WorldBackup.readLast(root,c.world.getRegistryKey().getValue().toString());
+  String source=Files.readString(root.resolve("last-backup.txt")).trim();
+  var snapshot=WorldBackup.read(root,c.world.getRegistryKey().getValue().toString(),source);
+  Files.writeString(root.resolve("restore-source.txt"),source);
   BuildPlan plan=BuildPlan.fromPlacements(snapshot.blocks());
   BlueprintLibrary.save(c,"active",plan);saveOrigin(c,plan);
   Files.writeString(root.resolve("active.txt"),c.world.getRegistryKey().getValue().toString());
@@ -70,7 +73,7 @@ final class LocalBuilder {
   event("Ripristino ultimo backup richiesto; prima viene salvato lo stato attuale dell'area");
  }
  static void recover(MinecraftClient c) throws Exception {
-  if(running || inFlight)throw new IllegalStateException("Lavoro gia attivo");
+  if(running || inFlight || backingUp)throw new IllegalStateException("Lavoro gia attivo");
   Path marker=c.getServer().getSavePath(WorldSavePath.ROOT).resolve("blueprintbuilder/active.txt");
   String saved=Files.readString(marker);
   if(saved.startsWith("COMPLETE"))throw new IllegalStateException("Costruzione gia completata");
@@ -78,7 +81,13 @@ final class LocalBuilder {
   // Saved library is relative to its first block. The absolute origin is stored separately.
   String[] xyz=Files.readString(marker.resolveSibling("origin.txt")).split(",");
   BuildPlan plan=BlueprintLibrary.load(c,"active",new BlockPos(Integer.parseInt(xyz[0]),Integer.parseInt(xyz[1]),Integer.parseInt(xyz[2])));
-  activate(c,plan);event("Ripresa da disco: controllo dei blocchi gia presenti, nessuna rigenerazione");
+  activate(c,plan);
+  Path restoreSource=marker.resolveSibling("restore-source.txt");
+  if(Files.isRegularFile(restoreSource)){
+   var snapshot=WorldBackup.read(marker.getParent(),saved,Files.readString(restoreSource).trim());
+   restoring=true;restoreNbt=snapshot.nbt();
+  }
+  event("Ripresa da disco: controllo dei blocchi gia presenti, nessuna rigenerazione");
  }
  static void saveOrigin(MinecraftClient c,BuildPlan plan)throws Exception {
   Path f=c.getServer().getSavePath(WorldSavePath.ROOT).resolve("blueprintbuilder/origin.txt");
@@ -109,7 +118,7 @@ final class LocalBuilder {
       if(!verifying){verifying=true;checked=0;phase="Verifica finale";continue;}
       w.getChunkManager().save(true);
       Path marker=owner.getSavePath(WorldSavePath.ROOT).resolve("blueprintbuilder/active.txt");
-      Files.writeString(marker,"COMPLETE");running=false;phase="Completato e verificato";event(phase);return;
+      Files.writeString(marker,"COMPLETE");Files.deleteIfExists(marker.resolveSibling("restore-source.txt"));running=false;phase="Completato e verificato";event(phase);return;
      }
      var e=placements.get(index);BlockPos p=e.pos();
      if(!w.isChunkLoaded(p)){phase="Attesa terreno: avvicinati a "+p.toShortString();return;}
