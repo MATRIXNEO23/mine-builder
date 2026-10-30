@@ -122,7 +122,9 @@ public final class BuildExecutor {
                     for (var candidate : pending) {
                         BlockPos target = candidate.pos();
                         if (!world.isInBuildLimit(target)) {
-                            lastError = "Progetto fuori dai limiti del mondo";
+                            lastError = "Blocco fuori dai limiti: " + target.toShortString()
+                                + " (Y valida da " + world.getBottomY() + " a "
+                                + (world.getTopY() - 1) + "). Diario conservato; non costruire questa pagina.";
                             cancel();
                             return;
                         }
