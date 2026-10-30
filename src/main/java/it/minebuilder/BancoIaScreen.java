@@ -71,6 +71,10 @@ public final class BancoIaScreen extends Screen {
     private static String autoRecoveredWorld;
     private boolean journalRecoveryRunning;
     private int consoleScroll;
+    private boolean blueprintReady;
+    private boolean hasJournal;
+    private boolean hasResume;
+    private boolean previouslyWorking;
 
     private record GenerationOutcome(String reply, BuildPlan plan) {}
 
@@ -148,6 +152,71 @@ public final class BancoIaScreen extends Screen {
         if (prompt != null && !savedTab) setInitialFocus(prompt);
         recoverProgressive();
         autoRecoverJournal();
+        inspectLocalActions();
+        updateActions();
+    }
+
+    private BuildPlan validatedPlan(BuildPlan plan) {
+        BlueprintContract.validateAndPartition(plan);
+        BuildExecutor.validateHeight(client, plan);
+        blueprintReady = true;
+        return plan;
+    }
+
+    private void inspectLocalActions() {
+        hasJournal = false;
+        hasResume = false;
+        if (client == null || client.getServer() == null) return;
+        Path root = client.getServer().getSavePath(net.minecraft.util.WorldSavePath.ROOT).resolve("minebuilder");
+        try {
+            Path journals = root.resolve("generation-journal");
+            if (java.nio.file.Files.isDirectory(journals)) {
+                try (var dirs = java.nio.file.Files.list(journals)) {
+                    hasJournal = dirs.anyMatch(java.nio.file.Files::isDirectory);
+                }
+            }
+            Path checkpoint = root.resolve("active-build.progress");
+            if (java.nio.file.Files.isRegularFile(checkpoint)
+                    && java.nio.file.Files.isRegularFile(root.resolve("active-build.origin"))) {
+                var lines = java.nio.file.Files.readAllLines(checkpoint);
+                hasResume = lines.size() == 2 && !lines.get(1).equals("COMPLETE");
+            }
+        } catch (Exception ignored) { /* Errors are shown by the explicit recovery action. */ }
+    }
+
+    private boolean working() {
+        return generatorRunning || journalRecoveryRunning || pendingLogin != null
+            || BuildExecutor.busy() || ProgressiveBuild.active();
+    }
+
+    private void updateActions() {
+        boolean world = client != null && client.player != null && client.isInSingleplayer();
+        boolean busy = working();
+        if (previouslyWorking && !busy) inspectLocalActions();
+        previouslyWorking = busy;
+        boolean idle = !busy;
+        boolean connected = accessToken != null && selectedModel != null;
+        for (var child : children()) {
+            if (!(child instanceof ButtonWidget button)) continue;
+            String label = button.getMessage().getString();
+            button.active = switch (label) {
+                case "1. Collega ChatGPT" -> world && idle;
+                case "2. Progetta" -> world && idle && connected && prompt != null && !prompt.getText().isBlank();
+                case "3. Costruisci" -> ActionGate.canBuild(world, !idle, blueprintReady, pendingPlan != null);
+                case "Recupera diario GPT" -> world && idle && hasJournal;
+                case "Riprendi costruzione" -> world && idle && hasResume;
+                case "Salva progetto (dopo progettazione)" -> world && idle && lastPlan != null
+                    && projectName != null && !projectName.getText().isBlank();
+                case "Replica selezionato" -> world && idle && selectedBlueprint != null;
+                case "Seleziona salvato", "Precedenti", "Successivi" -> idle && !visibleBlueprints.isEmpty();
+                default -> true;
+            };
+        }
+    }
+
+    @Override public void tick() {
+        super.tick();
+        updateActions();
     }
 
     private void saveBlueprint() {
@@ -200,8 +269,8 @@ public final class BancoIaScreen extends Screen {
             status = Text.literal("Seleziona prima un progetto."); return;
         }
         try {
-            pendingPlan = BlueprintLibrary.load(client, selectedBlueprint,
-                client.player.getBlockPos().add(4, 0, 4));
+            pendingPlan = validatedPlan(BlueprintLibrary.load(client, selectedBlueprint,
+                client.player.getBlockPos().add(4, 0, 4)));
             status = Text.literal("Replica pronta: premi Costruisci.");
         } catch (Exception e) { status = Text.literal("Replica: " + e.getMessage()); }
     }
@@ -287,6 +356,9 @@ public final class BancoIaScreen extends Screen {
         recoverJournal();
     }
     private void recoverJournal() {
+        if (working()) return;
+        pendingPlan = null;
+        blueprintReady = false;
         if (client == null || client.player == null || !client.isInSingleplayer()) {
             status = Text.literal("Recupero disponibile solo in singleplayer."); return;
         }
@@ -352,8 +424,8 @@ public final class BancoIaScreen extends Screen {
                     continueJournal(job, origin, files.size(), cells);
                     return;
                 }
-                pendingPlan = BuildPlan.fromPlacements(cells.entrySet().stream()
-                    .map(e -> new BuildPlan.Placement(e.getKey(), e.getValue())).toList());
+                pendingPlan = validatedPlan(BuildPlan.fromPlacements(cells.entrySet().stream()
+                    .map(e -> new BuildPlan.Placement(e.getKey(), e.getValue())).toList()));
                 pendingPlan.validateSections();
                 lastPlan = pendingPlan;
                 status = Text.literal("Diario recuperato: premi Costruisci.");
@@ -394,7 +466,7 @@ public final class BancoIaScreen extends Screen {
                 } else {
                     try {
                         BuildExecutor.validateHeight(client, plan);
-                        pendingPlan = plan;
+                        pendingPlan = validatedPlan(plan);
                         lastPlan = plan;
                         status = Text.literal("Progetto completo recuperato: premi Costruisci.");
                         logConsole("Progetto JSON recuperato: " + plan.placements().size() + " blocchi");
@@ -440,10 +512,16 @@ public final class BancoIaScreen extends Screen {
                     status = Text.literal("Recupero componenti: " + failure.getMessage());
                     logConsole("ERRORE recupero componenti: " + failure.getMessage());
                 } else {
-                    pendingPlan = plan;
-                    lastPlan = plan;
-                    status = Text.literal("Progetto recuperato: verifica e premi Costruisci.");
-                    logConsole("Progetto a componenti recuperato: " + plan.placements().size() + " blocchi");
+                    try {
+                        pendingPlan = validatedPlan(plan);
+                        lastPlan = plan;
+                        status = Text.literal("Progetto recuperato: verifica e premi Costruisci.");
+                        logConsole("Progetto a componenti recuperato: " + plan.placements().size() + " blocchi");
+                    } catch (Exception invalid) {
+                        pendingPlan = null;
+                        blueprintReady = false;
+                        status = Text.literal("Progetto recuperato non valido: " + invalid.getMessage());
+                    }
                 }
             });
         });
@@ -455,6 +533,8 @@ public final class BancoIaScreen extends Screen {
         if (token == null || model == null) {
             status = Text.literal("Ricollega ChatGPT per continuare il diario."); return;
         }
+        generatorRunning = true;
+        journalRecoveryRunning = true;
         status = Text.literal("GPT riprende dalla pagina " + (startPage + 1));
         CompletableFuture.supplyAsync(() -> {
             try {
@@ -547,14 +627,25 @@ public final class BancoIaScreen extends Screen {
             } catch (Exception e) { throw new java.util.concurrent.CompletionException(e); }
         }).whenComplete((plan, error) -> {
             if (client != null) client.execute(() -> {
+                generatorRunning = false;
+                journalRecoveryRunning = false;
                 if (error != null) status = Text.literal("Ripresa GPT: " + error.getCause().getMessage());
-                else { pendingPlan = plan; lastPlan = plan;
-                    status = Text.literal("Generazione ripresa e completata. Premi Costruisci."); }
+                else {
+                    try {
+                        pendingPlan = validatedPlan(plan); lastPlan = plan;
+                        status = Text.literal("Generazione ripresa e completata. Premi Costruisci.");
+                    } catch (Exception invalid) {
+                        pendingPlan = null;
+                        blueprintReady = false;
+                        status = Text.literal("Diario non valido: " + invalid.getMessage());
+                    }
+                }
             });
         });
     }
     private void confirmBuild() {
-        if (generatorRunning) {
+        if (!ActionGate.canBuild(client != null && client.player != null && client.isInSingleplayer(),
+                working(), blueprintReady, pendingPlan != null)) {
             status = Text.literal("Attendi: progetto completo e sezioni in verifica.");
             return;
         }
@@ -563,6 +654,7 @@ public final class BancoIaScreen extends Screen {
             BuildExecutor.validateHeight(client, pendingPlan);
             placementPlan = pendingPlan;
             pendingPlan = null;
+        blueprintReady = false;
             status = Text.literal("Martello: accovacciati e clicca per ruotare; clic normale per costruire.");
             close();
         } catch (Exception e) { status = Text.literal("Errore: " + e.getMessage()); }
@@ -579,7 +671,7 @@ public final class BancoIaScreen extends Screen {
     public static boolean hasPlacementPlan() { return placementPlan != null; }
 
     private void sendMessage() {
-        if (generatorRunning || journalRecoveryRunning) {
+        if (working()) {
             status = Text.literal("Una generazione o un recupero è già in corso.");
             return;
         }
@@ -673,10 +765,11 @@ public final class BancoIaScreen extends Screen {
         }
         final BlockPos origin = selectedOrigin;
         pendingPlan = null;
+        blueprintReady = false;
         // The original user request is canonical; geometry instructions live in GeometryGenerator.
         String request = message;
         status = Text.literal(build ? "GPT interpreta e progetta..." : "GPT sta rispondendo...");
-        generatorRunning = build;
+        generatorRunning = true;
         generatorPages = 0;
         generatorBlocks = 0;
         generatorStage = build ? "Progettazione autonoma" : "Chat";
@@ -716,15 +809,15 @@ public final class BancoIaScreen extends Screen {
             }
         }).thenAccept(outcome -> {
             String reply = outcome.reply();
-            generatorRunning = false;
             logConsole(reply.startsWith("Errore GPT:") ? "ERRORE: " + reply : "Risposta GPT ricevuta; conversione blueprint");
             generatorStage = reply.startsWith("Errore GPT:") ? "Interrotto: verifica dettagli" : "Generazione conclusa";
             if (client != null) client.execute(() -> {
+                generatorRunning = false;
                 if (build && !reply.startsWith("Errore GPT:")) {
                     try {
                         // The already validated blueprint is passed directly; avoid
                         // serializing/parsing up to 2 million blocks on the render thread.
-                        pendingPlan = outcome.plan();
+                        pendingPlan = validatedPlan(outcome.plan());
                         if (pendingPlan == null) throw new IllegalStateException("Blueprint assente");
                         BlueprintContract.validateAndPartition(pendingPlan);
                         BuildExecutor.validateHeight(client, pendingPlan);
@@ -737,6 +830,8 @@ public final class BancoIaScreen extends Screen {
                         status = Text.literal("Progetto pronto, conferma.");
                         logConsole("Progetto pronto: conferma Costruisci");
                     } catch (Exception e) {
+                        pendingPlan = null;
+                        blueprintReady = false;
                         lastReply = "Progetto non valido (" + e.getClass().getSimpleName() + "): "
                             + e.getMessage() + ". Controlla la geometria e il JSON; usa Dettagli e controlli per copiare il messaggio.";
                         logConsole("ERRORE blueprint: " + e.getClass().getSimpleName() + ": " + e.getMessage());
@@ -752,6 +847,7 @@ public final class BancoIaScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+        updateActions();
         pollConsoleStage();
         renderBackground(context);
         context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 12, 0xFFFFFF);

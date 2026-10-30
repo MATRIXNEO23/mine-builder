@@ -26,3 +26,10 @@ tasks.register('verifyCompositeManifest', JavaExec) {
   mainClass = 'it.minebuilder.BlueprintFieldsTest'
  }
  tasks.named('check') { dependsOn tasks.named('verifyBlueprintFields') }
+
+tasks.register('verifyActionGate', JavaExec) {
+  dependsOn tasks.named('testClasses')
+  classpath = sourceSets.test.runtimeClasspath
+  mainClass = 'it.minebuilder.ActionGateTest'
+}
+tasks.named('check') { dependsOn tasks.named('verifyActionGate') }
