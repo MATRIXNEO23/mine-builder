@@ -43,3 +43,14 @@ tasks.register('verifyCapacity', JavaExec) {
  maxHeapSize = '1g'
 }
 tasks.named('check') { dependsOn tasks.named('verifyCapacity') }
+
+loom {
+ runs {
+  capacityTest {
+   server()
+   vmArg '-Dmatrixarchitect.capacity-test=true'
+   vmArg '-Xmx2G'
+   runDir 'run-capacity-test'
+  }
+ }
+}

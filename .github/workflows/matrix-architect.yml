@@ -27,6 +27,13 @@ jobs:
       - name: Build addon and verify preview rotation
         working-directory: matrix-architect
         run: gradle --no-daemon build
+      - name: Verify large schematic in Fabric WorldEdit runtime
+        working-directory: matrix-architect
+        run: |
+          mkdir -p run-capacity-test
+          echo 'eula=true' > run-capacity-test/eula.txt
+          printf 'online-mode=false\nlevel-type=minecraft:flat\ngenerate-structures=false\nview-distance=2\nsimulation-distance=2\n' > run-capacity-test/server.properties
+          timeout 180s gradle --no-daemon runCapacityTest
       - uses: actions/upload-artifact@v4
         with:
           name: matrix-architect-fabric-1.20.1
