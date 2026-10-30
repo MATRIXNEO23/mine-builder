@@ -686,7 +686,7 @@ public final class BancoIaScreen extends Screen {
                 generatorBlocks = completeGeometry.placements().size();
                 generatorStage = "Progetto completo verificato: "
                     + completeGeometry.sections().size() + " sezioni";
-                return "COMPLETE_GEOMETRY:" + geometry;
+                if (!geometry.isBlank()) return "COMPLETE_GEOMETRY:" + geometry;
                 java.util.List<String> pages = new java.util.ArrayList<>();
                 java.util.List<BuildPlan.Placement> validated = new java.util.ArrayList<>();
                 java.util.Map<BlockPos, net.minecraft.block.BlockState> occupied = new java.util.HashMap<>();
