@@ -1,3 +1,6 @@
+## 2026-10-30 — Errore altezza fotografato e protezione nuovi mondi
+Screenshot utente: Blocco fuori dai limiti -21,-73,-297, Y valida -64..319. Correzione 6285d0d: validazione preventiva di ogni posizione in BuildExecutor.start/resume e API validateHeight, prima di salvare/posare; lastErrorFor(client) nasconde errori di server/mondo precedente. Correzione 7fc208b: validazione preventiva anche prima di armare il martello e UI usa lastErrorFor. Non spostare automaticamente edifici o modificare progetti/salvataggi; richiedere quota adatta o rigenerazione. CI e test runtime da verificare.
+
 ## 2026-10-30 — Console generazione in tempo reale
 Commit c08043e: BancoIaScreen integra pulsante Console generazione e schermata live con fase, secondi trascorsi, blocchi/pagine/sezioni, cronologia eventi e registro persistente config/minebuilder/generation-console.log. Le fasi vengono rilevate al cambio di generatorStage nel render; non sono percentuali GPT inventate. Log scrive anche se la console non è aperta quando BancoIaScreen è visualizzato; eventi intermedi non renderizzati potrebbero non essere catturati. CI e test in gioco ancora da verificare; non dichiarare build pronta finché non verde.
 
