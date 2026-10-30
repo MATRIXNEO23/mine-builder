@@ -25,7 +25,6 @@ public final class BancoIaScreen extends Screen {
     private java.util.List<String> visibleBlueprints = java.util.List.of();
     private int blueprintPage = 0;
     private boolean savedTab = false;
-    private boolean originalDesign = false;
     private static LoopbackRedirect pendingLogin;
     private static volatile String accessToken;
     private static volatile String selectedModel;
@@ -95,11 +94,9 @@ public final class BancoIaScreen extends Screen {
             prompt.setMaxLength(512);
             prompt.setPlaceholder(Text.literal("Es. Colosseo 1:1, castello originale..."));
             addDrawableChild(prompt);
-            addDrawableChild(ButtonWidget.builder(Text.literal(originalDesign ? "Modalita: Originale" : "Modalita: Riferimenti"),
-                button -> {
-                    originalDesign = !originalDesign;
-                    button.setMessage(Text.literal(originalDesign ? "Modalita: Originale" : "Modalita: Riferimenti"));
-                }).dimensions(left, top + 56, panel, 20).build());
+            addDrawableChild(ButtonWidget.builder(Text.literal("Ricerca: automatica (GPT)"),
+                button -> status = Text.literal("GPT sceglie quando cercare riferimenti o ispirazione."))
+                .dimensions(left, top + 56, panel, 20).build());
             addDrawableChild(ButtonWidget.builder(Text.literal("1. Collega ChatGPT"), button -> startLogin())
                 .dimensions(left, top + 84, panel, 20).build());
             addDrawableChild(ButtonWidget.builder(Text.literal("2. Progetta"), button -> sendMessage())
@@ -566,7 +563,6 @@ public final class BancoIaScreen extends Screen {
         }
         final BlockPos origin = selectedOrigin;
         pendingPlan = null;
-        final boolean useReferences = true;
         String request = build
             ? "Design the requested Minecraft object faithfully: " + message
               + ". You are a universal block architect, NOT a house generator. "
