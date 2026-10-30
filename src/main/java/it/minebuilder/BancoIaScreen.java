@@ -110,9 +110,6 @@ public final class BancoIaScreen extends Screen {
                     status = Text.literal("Ripresa non riuscita: " + e.getMessage());
                 }
             }).dimensions(left, top + 162, panel, 20).build());
-            addDrawableChild(ButtonWidget.builder(Text.literal("Console generazione"), button -> {
-                if (client != null) client.setScreen(new ConsoleScreen(this));
-            }).dimensions(left, top + 216, panel, 20).build());
             addDrawableChild(ButtonWidget.builder(Text.literal("Dettagli e controlli"), button -> openDetails())
                 .dimensions(left, top + 136, panel, 20).build());
         } else {
@@ -135,6 +132,9 @@ public final class BancoIaScreen extends Screen {
             addDrawableChild(ButtonWidget.builder(Text.literal("Successivi"), button -> showBlueprintPage(1))
                 .dimensions(left + half + 8, top + 136, half, 20).build());
         }
+        addDrawableChild(ButtonWidget.builder(Text.literal("Console LIVE / Registro"), button -> {
+            if (client != null) client.setScreen(new ConsoleScreen(this));
+        }).dimensions(left, height - 52, panel, 20).build());
         addDrawableChild(ButtonWidget.builder(Text.literal("Chiudi"), button -> close())
             .dimensions(left, height - 26, panel, 20).build());
         refreshBlueprints();
@@ -584,6 +584,7 @@ public final class BancoIaScreen extends Screen {
         generatorPages = 0;
         generatorBlocks = 0;
         generatorStage = build ? (useReferences ? "Modalita riferimenti: ricerca fonti" : "Modalita originale: progetto creativo") : "Chat";
+        logConsole("Nuova richiesta: " + message);
         CompletableFuture.supplyAsync(() -> {
             try {
                 String enriched = request;
@@ -600,6 +601,7 @@ public final class BancoIaScreen extends Screen {
                 }
                 if (build && !originalDesign) {
                     generatorStage = "Analisi immagini e planimetrie";
+                    logConsole("Fase avviata: Analisi immagini e planimetrie");
                     try {
                         ArchitectureResearch.VisualReference visual = ArchitectureResearch.visualReference(message);
                         if (visual != null) {
@@ -620,6 +622,7 @@ public final class BancoIaScreen extends Screen {
                 }
                 if (build) {
                     generatorStage = "Progettazione architettonica";
+                    logConsole("Fase avviata: Progettazione architettonica");
                     String architecturalBrief = ChatGptInference.ask(token, model,
                         "Act as an architectural designer creating an ORIGINAL, coherent Minecraft "
                         + "structure. User request: " + message + ". "
@@ -643,6 +646,7 @@ public final class BancoIaScreen extends Screen {
                 // Freeze a global architectural contract before any page is generated.
                 // Pages must implement this contract rather than redesigning the building.
                 generatorStage = "Definizione progetto completo e collegamenti";
+                    logConsole("Fase avviata: Definizione progetto completo e collegamenti");
                 String masterPlan = ChatGptInference.ask(token, model,
                     "Create a COMPLETE, coherent architectural master plan for this Minecraft "
                     + "building at 1 block = 1 metre. Do NOT output individual block coordinates. "
@@ -679,6 +683,7 @@ public final class BancoIaScreen extends Screen {
                 // One complete compact geometric specification, expanded locally by Java.
                 // No model-generated pages or per-section material decisions.
                 generatorStage = "Geometria completa: un unico progetto";
+                    logConsole("Fase avviata: Geometria completa: un unico progetto");
                 String geometry = ChatGptInference.ask(token, model,
                     enriched + " Produce ONE COMPLETE JSON geometric blueprint for the ENTIRE "
                     + "building, using compact cuboids and shapes for repeated structure, "
@@ -820,6 +825,7 @@ public final class BancoIaScreen extends Screen {
             }
         }).thenAccept(reply -> {
             generatorRunning = false;
+            logConsole(reply.startsWith("Errore GPT:") ? "ERRORE: " + reply.substring(0, Math.min(350, reply.length())) : "Risposta GPT ricevuta; conversione blueprint");
             generatorStage = reply.startsWith("Errore GPT:") ? "Interrotto: verifica dettagli" : "Generazione conclusa";
             if (client != null) client.execute(() -> {
                 if (build && !reply.startsWith("Errore GPT:")) {
@@ -871,6 +877,8 @@ public final class BancoIaScreen extends Screen {
                             return;
                         }
                         pendingPlan.validateSections();
+                        BuildExecutor.validateHeight(client, pendingPlan);
+                        logConsole("Blueprint validato: " + pendingPlan.placements().size() + " blocchi, " + pendingPlan.sections().size() + " sezioni");
                         lastPlan = pendingPlan;
                         lastReply = "Progetto pronto: " + pendingPlan.placements().size() + " blocchi. "
                             + " Sezioni 16x16 validate: " + pendingPlan.sections().size() + ". "
