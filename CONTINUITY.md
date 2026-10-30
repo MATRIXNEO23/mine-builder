@@ -1,8 +1,12 @@
+## Aggiornamento 2026-10-30 — Nuova direzione autorizzata
+L'utente ha autorizzato a passare da pagine GPT indipendenti a progetto globale prima della suddivisione deterministica in sezioni. Primo passo implementato: generazione di un master plan architettonico globale, salvato nel journal come master-plan.txt prima della prima pagina; prompt di geometria vincolato al piano; ripresa journal ricarica il master plan. Commit a22bf7a e 80da7e4. Il progetto globale è attualmente TESTUALE, non ancora un manifest geometrico tipizzato: NON dichiarare che la suddivisione deterministica, i controlli di giunzione e la verifica completa sono già implementati. Restano da realizzare un modello geometrico globale validato, compilazione deterministica in blocchi, partizionamento per coordinate, verifiche giunzioni/copertura, compatibilità con progressive build e recovery atomico. Nessun costo extra. CI e test in-game da verificare.
+Correzioni precedenti su limiti verticali: commit 5b790121 e precedenti, origine nuovi progetti alzata se necessario, errore con coordinate. Non riposizionare automaticamente i vecchi journal.
+
 # CONTINUITÀ PROGETTO — Mine Builder
 Aggiornamento: 2026-10-29 (Europa/Roma)
 Repository canonica: MATRIXNEO23/mine-builder
 Branch: main
-Stato: pausa richiesta dall'utente. NON considerare concluso o validato il progetto.
+Stato: lavoro ripreso su autorizzazione dell'utente. NON considerare concluso o validato il progetto.
 
 ## Obiettivo vincolante
 Mod Minecraft Fabric 1.20.1, mondo singleplayer offline, GPT via accesso già disponibile senza API a consumo, nessun costo aggiuntivo. Progettazione di strutture originali o ricostruzioni reali 1:1 (1 blocco = 1 metro), fedeltà ai dettagli prioritaria rispetto alla velocità. Costruzione progressiva, salvataggio duraturo e ripresa dopo interruzioni. Proteggere il mondo e le costruzioni esistenti. Non modificare funzioni acqua/anteprima fantasma senza richiesta.
@@ -45,7 +49,7 @@ Mod Minecraft Fabric 1.20.1, mondo singleplayer offline, GPT via accesso già di
 5. Progettare manifest sezioni, test anti-regressione, conferma utente prima di ogni cambiamento potenzialmente distruttivo.
 
 ## Regole di lavoro
-Usare repository come fonte canonica, leggere codice e HEAD prima di interventi. Non dichiarare riuscita una funzione soltanto perché la CI compila. Non cancellare journal, checkpoint, mondi o progetti. Nessuna API a pagamento, hosting o addebiti. Se un requisito non è chiaro, chiedere anziché inventare. Utente ha chiesto di sospendere ora: non avviare nuovi lavori non richiesti.
+Usare repository come fonte canonica, leggere codice e HEAD prima di interventi. Non dichiarare riuscita una funzione soltanto perché la CI compila. Non cancellare journal, checkpoint, mondi o progetti. Nessuna API a pagamento, hosting o addebiti. Se un requisito non è chiaro, chiedere anziché inventare. L'utente ha autorizzato la ripresa e la nuova architettura; non introdurre modifiche distruttive.
 
 ## Ultima azione
 Workflow `Retry oversized GPT geometry pages with smaller batches and clarify save project location` commit c7d08ce3: ROSSO per compilazione Java `parsedPage` mancante, risolto da 869ff58a (verde). Workflow successivo `Validate page before journaling and retry oversized geometry with smaller pages` commit f3a9272f: ROSSO per HTTP 409 nel publishing, NON per compilazione. Commit 7f264688 tenta di risolvere il publishing. Questo file è il punto di ripresa.
