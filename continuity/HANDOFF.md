@@ -1,3 +1,20 @@
+# MATRIX Architect — rimozione limite schematic, 30 ottobre 2026
+
+Codice limite: 55e63dd9567213104301667248c855c5000f8639; revisione finale e harness runtime: fc5505a7dca275166d1e16a11a19dff9fd7e17a1. Rimosso il tetto arbitrario di2milioni posizioni dal lettore WorldEdit. Non si ridimensiona ne altera il contenuto del file: dimensioni e origine conservate. Console: dimensioni, volume inclusa aria, RAM Java disponibile. SchematicCapacity verifica volume positivo e riserva heap di max(128MiB,10% massimo heap) dopo lettura e prima della posa; NON e una stima del picco di memoria ne della cronologia. OutOfMemoryError del lettore convertito in errore leggibile senza avviare posa. Limite64MB compressi resta. Nuovi test: grandi volumi ammessi con memoria simulata, RAM insufficiente rifiutata, lettura/scrittura WorldEdit reale oltre2milioni con origine conservata.
+
+Limiti mantenuti: file intero in RAM, incolla sincrono, history undo della sessione non persistente; area deve avere chunk caricati, altezza e confine validi, entita mobili rifiutate. Non dichiarare supporto illimitato, caricamento fuori memoria o posa progressiva. Nessuna modifica alle altre mod/JAR.
+
+Prossimo test utente: sostituire JAR, riavviare, F10 carica stesso San Siro e controllare dimensioni/RAM. Non dichiarare testato quel file o il mondo sul PC. Se errore chunk non caricati, occorre affrontare preparazione chunk e posa a lotti; se RAM insufficiente, misurare heap effettivo di Prism prima di suggerire allocazioni sul PC10GB. Tasti F6/F7/F9/F10/F12 restano senza conflitti come revisione precedente.
+
+Verifiche: CI41063672780, compilazione e test memoria/browser/tasti/rotazione passati; runtime Minecraft1.20.1 Fabric WorldEdit7.2.15 passato (marker FABRIC_WORLDEDIT_LARGE_SCHEMATIC_PASS): clipboard201x51x201=2.060.451 posizioni aria, writer/reader Sponge con dimensioni e origine(9,3,7) conservate. NON prova materiali o posa. JAR e checksum pubblicati in downloads; SHA256 d2839d2200a3c0dbb3f8ce69c01ffb785d06b26581279686804a2827f291bcb3  MATRIX-Architect-v0.1.0-Minecraft-1.20.1-Fabric.jar. Gli harness precedenti fallivano per piattaforma non inizializzata e registri troppo precoci: corretti avviando il controllo al primo END_SERVER_TICK; processo test isolato termina con halt solo se property matrixarchitect.capacity-test e attiva. Timeout CI15min e runtime180s; build obsolete cancellate automaticamente. Nessun JAR fallito pubblicato.
+
+## Ripresa obbligatoria
+Recupera MATRIXNEO23/mine-builder main, leggi AGENTS.md, README e continuity/PROTOCOL.md, STATE, ultimo CHECKPOINT e questo HANDOFF; verifica HEAD, CI41063672780 e JAR/checksum attuali. Prosegui dal collaudo utente di caricamento San Siro; conserva file, scala, dettagli e altre mod. Non confondere importazione verificata con posa in-world riuscita. Non creare rami separati senza richiesta.
+
+---
+
+## Archivio storico
+
 # Comandi senza conflitti e blocco grandi schematic — 30 ottobre 2026
 
 Segnalazioni utente: il caricamento di una struttura grande viene rifiutato per ingombro oltre2milioni; il tasto P apre Interazioni sociali. L'utente richiede tasti non usati da Minecraft. CORRETTO in questa revisione solo il gruppo di tasti; il limite2milioni rimane un open loop prioritario, non dichiararlo risolto o chiedere di ridurre file/scala.
