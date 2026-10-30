@@ -20,3 +20,9 @@ tasks.register('verifyImportContract', JavaExec) {
  mainClass = 'it.blueprintbuilder.ImportContractTest'
 }
 tasks.named('check') { dependsOn tasks.named('verifyImportContract') }
+tasks.register('verifyGeometry', JavaExec) {
+ dependsOn tasks.named('testClasses')
+ classpath = sourceSets.test.runtimeClasspath
+ mainClass = 'it.blueprintbuilder.GeometrySmokeTest'
+}
+tasks.named('check') { dependsOn tasks.named('verifyGeometry') }
