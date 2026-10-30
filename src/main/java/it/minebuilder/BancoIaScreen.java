@@ -566,7 +566,7 @@ public final class BancoIaScreen extends Screen {
         }
         final BlockPos origin = selectedOrigin;
         pendingPlan = null;
-        final boolean useReferences = !originalDesign;
+        final boolean useReferences = true;
         String request = build
             ? "Design the requested Minecraft object faithfully: " + message
               + ". You are a universal block architect, NOT a house generator. "
@@ -586,94 +586,72 @@ public final class BancoIaScreen extends Screen {
               + "If too complex for a single response, return a coherent small section rather than claiming completion. "
               + "No markdown, no explanation."
             : message;
-        status = Text.literal(build ? (useReferences ? "Ricerca architettura e planimetrie..." : "Progettazione originale senza ricerca esterna...") : "GPT sta rispondendo...");
+        status = Text.literal(build ? "GPT interpreta e progetta..." : "GPT sta rispondendo...");
         generatorRunning = build;
         generatorPages = 0;
         generatorBlocks = 0;
-        generatorStage = build ? (useReferences ? "Modalita riferimenti: ricerca fonti" : "Modalita originale: progetto creativo") : "Chat";
+        generatorStage = build ? "Progettazione autonoma" : "Chat";
         logConsole("Nuova richiesta: " + message);
         CompletableFuture.supplyAsync(() -> {
             try {
-                String enriched = request;
-                if (build && useReferences) {
-                    String references;
+                if (!build) return ChatGptInference.ask(token, model, request);
+                generatorStage = "GPT: interpretazione e progetto";
+                logConsole("Fase avviata: interpretazione architettonica e decisione ricerca");
+                String firstPlan = ChatGptInference.ask(token, model,
+                    "You are the autonomous architect for a Minecraft 1.20.1 builder. "
+                    + "Interpret this user request: " + message + ". "
+                    + "FIRST LINE must be exactly RESEARCH=NONE, RESEARCH=INSPIRATION or RESEARCH=RECONSTRUCTION. "
+                    + "Choose NONE if references add no useful value; INSPIRATION if photographs or plans "
+                    + "would help create an ORIGINAL design; RECONSTRUCTION for a named real structure "
+                    + "requiring evidence and 1:1 fidelity. User does not have to provide sources. "
+                    + "Then provide ONE coherent technical architectural master plan, including type, "
+                    + "function, footprint, dimensions, shared coordinate axes, floors, roof, entrances, "
+                    + "interior circulation, materials and structural connections. "
+                    + "Do not output block coordinates or JSON. Never confuse estimates with verified measurements.");
+                DesignContract design = DesignContract.fromPlanningResponse(message, firstPlan);
+                String masterPlan = design.masterPlan();
+                String researchContext = "";
+                if (design.researchMode() != DesignContract.ResearchMode.NONE) {
+                    generatorStage = "Ricerca autonoma: " + design.researchMode();
+                    logConsole("Ricerca fonti: " + design.researchMode());
                     try {
-                        references = ArchitectureResearch.planningReferences(message);
-                    } catch (Exception e) {
-                        references = "Reference discovery unavailable. No verified measurements.";
+                        researchContext = ArchitectureResearch.planningReferences(message);
+                    } catch (Exception ex) {
+                        researchContext = "Reference search unavailable: " + ex.getClass().getSimpleName();
+                        logConsole(researchContext);
                     }
-                    enriched += " Planning references (metadata, not visually inspected): "
-                        + references + " Use only supported facts; do not invent measured dimensions. "
-                        + "Reason about structural layout before emitting the final JSON. For amphitheatres such as the Colosseum, distinguish the elliptical footprint, concentric rings, arena, tiered seating, repeated arches, circulation and entrances. Use rings for massing and explicit detail blocks or air for openings; do not claim 1:1 accuracy without verified dimensions. This example is not a mandatory template for other requests.";
-                }
-                if (build && !originalDesign) {
-                    generatorStage = "Analisi immagini e planimetrie";
-                    logConsole("Fase avviata: Analisi immagini e planimetrie");
                     try {
                         ArchitectureResearch.VisualReference visual = ArchitectureResearch.visualReference(message);
                         if (visual != null) {
+                            generatorStage = "GPT: analisi immagine di riferimento";
+                            logConsole("Analisi visiva: " + visual.title());
                             String analysis = ChatGptInference.askWithImage(token, model,
-                                "Analyze this Wikimedia architectural reference image: " + visual.title()
-                                + ". In Italian, identify only VISIBLE geometry, proportions, openings, "
-                                + "architectural details and possible floor-plan layout. "
-                                + "Separate observations from estimates. Do not invent measurements. "
-                                + "Return a concise technical description, not building JSON.",
+                                "Analyze only what is VISIBLE in this architectural reference: "
+                                + visual.title() + ". Describe geometry, proportions, roof, openings and "
+                                + "materials. Distinguish observations from estimates. "
+                                + "For inspiration do not copy the building; for reconstruction do not "
+                                + "invent dimensions. Return concise architectural observations.",
                                 visual.image(), visual.mime());
-                            enriched += " Actual visual analysis of reference (" + visual.title()
-                                + "): " + analysis.substring(0, Math.min(4500, analysis.length()))
-                                + ". This is an example, not proof of the requested building's dimensions.";
+                            researchContext += "\nVisual analysis (" + visual.title() + "): "
+                                + analysis.substring(0, Math.min(4500, analysis.length()));
                         }
-                    } catch (Exception ignored) {
-                        enriched += " Visual analysis unavailable; do not claim reference images were inspected.";
+                    } catch (Exception ex) {
+                        logConsole("Analisi immagine non disponibile: " + ex.getClass().getSimpleName());
                     }
+                    generatorStage = "GPT: consolidamento progetto e fonti";
+                    logConsole("Consolidamento del progetto dopo ricerca");
+                    masterPlan = ChatGptInference.ask(token, model,
+                        "Refine this architectural master plan using ONLY relevant research. "
+                        + "Preserve requested building type and coherent shared geometry. "
+                        + "For INSPIRATION create an ORIGINAL building; for RECONSTRUCTION prioritize "
+                        + "documented measurements and clearly mark estimates. "
+                        + "Do not claim sources were verified if only search titles were found. "
+                        + "Do not output block coordinates or JSON. Mode: " + design.researchMode()
+                        + "\nInitial plan: " + masterPlan
+                        + "\nResearch: " + researchContext.substring(0, Math.min(9500, researchContext.length())));
+                    design = new DesignContract(message, masterPlan, design.researchMode());
                 }
-                if (build) {
-                    generatorStage = "Progettazione architettonica";
-                    logConsole("Fase avviata: Progettazione architettonica");
-                    String architecturalBrief = ChatGptInference.ask(token, model,
-                        "Act as an architectural designer creating an ORIGINAL, coherent Minecraft "
-                        + "structure. User request: " + message + ". "
-                        + "First establish the building category, function, approximate dimensions "
-                        + "in metres (1 Minecraft block = 1 metre), footprint and floor plan, "
-                        + "structural system, symmetry or asymmetry, circulation, stairs, "
-                        + "entrances, windows, roof, facade rhythm, materials and distinctive details. "
-                        + "Ensure every level is accessible and volumes are plausible. "
-                        + "Use historical examples only as inspiration, never copy an unverified plan. "
-                        + "If the user explicitly requests a real 1:1 building, distinguish "
-                        + "verified dimensions from unknowns and do not claim exact fidelity. "
-                        + "Do not produce block coordinates or JSON. "
-                        + "Return a concise technical architectural design brief in Italian. "
-                        + "Available research context: "
-                        + enriched.substring(0, Math.min(6500, enriched.length())));
-                    enriched += " MANDATORY PRELIMINARY ARCHITECTURAL DESIGN (follow its spatial "
-                        + "organization, dimensions, circulation and details when generating JSON): "
-                        + architecturalBrief.substring(0, Math.min(6000, architecturalBrief.length()));
-                }
-                if (!build) return ChatGptInference.ask(token, model, enriched);
-                // Freeze a global architectural contract before any page is generated.
-                // Pages must implement this contract rather than redesigning the building.
-                generatorStage = "Definizione progetto completo e collegamenti";
-                    logConsole("Fase avviata: Definizione progetto completo e collegamenti");
-                String masterPlan = ChatGptInference.ask(token, model,
-                    "Create a COMPLETE, coherent architectural master plan for this Minecraft "
-                    + "building at 1 block = 1 metre. Do NOT output individual block coordinates. "
-                    + "Specify a shared coordinate origin (0,0,0), overall dimensions, bounding "
-                    + "box, footprint, floor heights, structural axes, symmetry, entrances, "
-                    + "corridors, stairs, arches, wall thickness, materials, facade repetition, "
-                    + "roof and all major architectural components. Define how adjoining parts "
-                    + "join with exact shared axes and heights. Clearly distinguish verified "
-                    + "measurements from approximations for real-world buildings. "
-                    + "Never claim exact fidelity without reliable measurements. "
-                    + "This plan is IMMUTABLE during geometry generation. "
-                    + "Architectural brief and references: "
-                    + enriched.substring(0, Math.min(11000, enriched.length())));
-                if (masterPlan == null || masterPlan.isBlank())
-                    throw new IllegalStateException("Progetto architettonico principale vuoto");
-                if (masterPlan.length() > 30000)
-                    throw new IllegalStateException("Progetto architettonico principale troppo lungo");
-                enriched += " IMMUTABLE GLOBAL MASTER PLAN (all pages MUST follow identical "
-                    + "axes, levels, dimensions, architectural components and joins): "
-                    + masterPlan;
+                String enriched = request + "\n" + design.geometryInstruction();
                 // Persist each GPT page before requesting the next one.
                 Path journal = client.getServer().getSavePath(net.minecraft.util.WorldSavePath.ROOT)
                     .resolve("minebuilder").resolve("generation-journal");
@@ -724,109 +702,7 @@ public final class BancoIaScreen extends Screen {
                 generatorBlocks = completeGeometry.placements().size();
                 generatorStage = "Progetto completo verificato: "
                     + completeGeometry.sections().size() + " sezioni";
-                if (!geometry.isBlank()) return "COMPLETE_GEOMETRY:" + geometry;
-                java.util.List<String> pages = new java.util.ArrayList<>();
-                java.util.List<BuildPlan.Placement> validated = new java.util.ArrayList<>();
-                java.util.Map<BlockPos, net.minecraft.block.BlockState> occupied = new java.util.HashMap<>();
-                String previous = "";
-                for (int page = 0; page < 100; page++) {
-                    generatorStage = "Generazione geometria, pagina " + (page + 1);
-                    String instruction = enriched + " This is generation page " + (page + 1)
-                        + " of a progressive architectural project. Keep the SAME architectural blueprint and coordinate origin."
-                        + " Never repeat blocks from previous pages. Previously generated summary: "
-                        + previous.substring(0, Math.min(2500, previous.length()))
-                        + " Return only JSON geometry plus mandatory boolean field complete."
-                        + " Set complete=true ONLY if the entire requested building is fully represented.";
-                    String answer = null;
-                    BuildPlan parsedPage = null;
-                    for (int attempt = 0; attempt < 4; attempt++) {
-                        String adjusted = instruction + (attempt == 0 ? "" :
-                            " Retry: prior geometry exceeded the per-page safety limit. "
-                            + "Return no more than 5000 expanded block positions in this page; "
-                            + "defer remaining geometry to later pages.");
-                        answer = ChatGptInference.ask(token, model, adjusted).trim();
-                        if (answer.startsWith("```")) {
-                            int first = answer.indexOf((char)10);
-                            int last = answer.lastIndexOf("```");
-                            if (first >= 0 && last > first)
-                                answer = answer.substring(first + 1, last).trim();
-                        }
-                        try {
-                            parsedPage = BuildPlan.parse(answer, origin);
-                            break;
-                        } catch (IllegalArgumentException ex) {
-                            if (attempt == 3) throw ex;
-                            generatorStage = "Pagina " + (page + 1) + ": geometria troppo grande, riprovo";
-                        }
-                    }
-                    if (answer.startsWith("```")) {
-                        int first = answer.indexOf((char)10), last = answer.lastIndexOf("```");
-                        if (first >= 0 && last > first) answer = answer.substring(first + 1, last).trim();
-                    }
-                    com.google.gson.JsonObject object = com.google.gson.JsonParser.parseString(answer).getAsJsonObject();
-                    if (!object.has("complete") || !object.get("complete").getAsJsonPrimitive().isBoolean())
-                        throw new IllegalStateException("Risposta GPT senza indicatore di completamento");
-                    // Validate against all previously accepted coordinates BEFORE publishing
-                    // a journal page. A rejected page must never become buildable.
-                    for (var placement : parsedPage.placements()) {
-                        var existing = occupied.get(placement.pos());
-                        if (existing != null && !existing.equals(placement.state()))
-                            throw new IllegalStateException("Conflitto geometrico tra pagine: " + placement.pos());
-                    }
-                    if ((long) occupied.size() + parsedPage.placements().size() > 2_000_000L)
-                        throw new IllegalStateException("Limite di sicurezza del progetto superato");
-                    Path tmpPage = java.nio.file.Files.createTempFile(jobDir, "page-", ".tmp");
-                    try {
-                        java.nio.file.Files.writeString(tmpPage, answer);
-                        java.nio.file.Files.move(tmpPage,
-                            jobDir.resolve(String.format(java.util.Locale.ROOT, "%04d.json", page)),
-                            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                    } finally {
-                        java.nio.file.Files.deleteIfExists(tmpPage);
-                    }
-                    for (var placement : parsedPage.placements()) {
-                        if (occupied.putIfAbsent(placement.pos(), placement.state()) == null)
-                            validated.add(placement);
-                    }
-                    pages.add(answer);
-                    generatorPages = pages.size();
-                    generatorBlocks = validated.size();
-                    generatorStage = "Pagina " + pages.size() + " validata e salvata";
-                    if (object.get("complete").getAsBoolean()) {
-                        // A single canonical block map is the source of truth. Derive
-                        // spatial sections from coordinates, never from GPT page borders.
-                        BuildPlan completePlan = BuildPlan.fromPlacements(validated);
-                        completePlan.validateSections();
-                        java.util.List<BuildPlan> sections = completePlan.sections();
-                        com.google.gson.JsonObject manifest = new com.google.gson.JsonObject();
-                        manifest.addProperty("schema", 1);
-                        manifest.addProperty("blocks", validated.size());
-                        manifest.addProperty("sections", sections.size());
-                        com.google.gson.JsonArray entries = new com.google.gson.JsonArray();
-                        for (int index = 0; index < sections.size(); index++) {
-                            BuildPlan section = sections.get(index);
-                            var first = section.placements().get(0).pos();
-                            com.google.gson.JsonObject entry = new com.google.gson.JsonObject();
-                            entry.addProperty("id", index);
-                            entry.addProperty("chunkX", Math.floorDiv(first.getX(), 16));
-                            entry.addProperty("chunkZ", Math.floorDiv(first.getZ(), 16));
-                            entry.addProperty("blocks", section.placements().size());
-                            entries.add(entry);
-                        }
-                        manifest.add("entries", entries);
-                        Path manifestTemp = java.nio.file.Files.createTempFile(jobDir, "sections-", ".tmp");
-                        try {
-                            java.nio.file.Files.writeString(manifestTemp, manifest.toString());
-                            java.nio.file.Files.move(manifestTemp, jobDir.resolve("sections-manifest.json"),
-                                java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                        } finally {
-                            java.nio.file.Files.deleteIfExists(manifestTemp);
-                        }
-                        return "PAGED:" + String.join("##PAGE##", pages);
-                    }
-                    previous += " Page " + (page + 1) + ": " + answer.substring(0, Math.min(350, answer.length()));
-                }
-                throw new IllegalStateException("Progetto oltre 100 pagine: generazione sospesa in sicurezza");
+                return "COMPLETE_GEOMETRY:" + geometry;
             } catch (Exception e) {
                 return "Errore GPT: " + e.getMessage();
             }
