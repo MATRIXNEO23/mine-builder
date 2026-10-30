@@ -4,10 +4,13 @@
   "version": "0.1.0",
   "name": "Blueprint Builder",
   "description": "Importa blueprint e costruisci nel mondo locale. Nessun GPT richiesto.",
-  "environment": "client",
+  "environment": "*",
   "entrypoints": {
     "client": [
       "it.blueprintbuilder.BlueprintBuilder"
+    ],
+    "main": [
+      "it.blueprintbuilder.RegistryTestEntrypoint"
     ]
   },
   "depends": {

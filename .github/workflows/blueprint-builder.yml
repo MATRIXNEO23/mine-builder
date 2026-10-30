@@ -26,6 +26,9 @@ jobs:
       - name: Build standalone mod and verify import contract
         working-directory: blueprint-builder
         run: gradle --no-daemon build
+      - name: Verify geometry in Fabric registry runtime
+        working-directory: blueprint-builder
+        run: gradle --no-daemon runRegistryTest
       - uses: actions/upload-artifact@v4
         with:
           name: blueprint-builder-fabric-1.20.1
