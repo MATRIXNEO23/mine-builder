@@ -419,16 +419,8 @@ public final class BancoIaScreen extends Screen {
         });
     }
     private void confirmBuild() {
-        if (streamingJob != null && pendingPlan != null && !streamingConfirmed) {
-            try {
-                ProgressiveBuild.approve(client, streamingJob);
-                streamingConfirmed = true;
-                pendingPlan = null;
-                status = Text.literal("Costruzione progressiva avviata.");
-                close();
-            } catch (Exception e) {
-                status = Text.literal("Avvio progressivo: " + e.getMessage());
-            }
+        if (generatorRunning) {
+            status = Text.literal("Attendi: progetto completo e sezioni in verifica.");
             return;
         }
         if (pendingPlan == null || client == null) { status = Text.literal("Prima genera un progetto."); return; }
@@ -722,15 +714,6 @@ public final class BancoIaScreen extends Screen {
                             validated.add(placement);
                     }
                     pages.add(answer);
-                    if (page == 0 && !streamingConfirmed && client != null) {
-                        BuildPlan first = parsedPage;
-                        client.execute(() -> {
-                            if (!streamingConfirmed) {
-                                pendingPlan = first;
-                                status = Text.literal("Prima pagina pronta: premi Costruisci.");
-                            }
-                        });
-                    }
                     generatorPages = pages.size();
                     generatorBlocks = validated.size();
                     generatorStage = "Pagina " + pages.size() + " validata e salvata";
