@@ -424,7 +424,7 @@ public final class BuildPlan {
 
     private static void addCell(Map<BlockPos, BlockState> cells, BlockPos origin,
                                 int x, int y, int z, BlockState state) {
-        if (Math.abs(x) > 128 || y < -32 || y > 128 || Math.abs(z) > 128)
+        if (Math.abs((long)x) > 2000 || Math.abs((long)y) > 2000 || Math.abs((long)z) > 2000)
             throw new IllegalArgumentException("Blueprint exceeds safe bounds");
         BlockPos pos = origin.add(x, y, z);
         // Ordered geometry layers: cuboids, then shapes, then explicit blocks.
