@@ -21,3 +21,10 @@ tasks.register('verifyPlacement', JavaExec) {
  mainClass = 'it.matrixarchitect.PlacementTest'
 }
 tasks.named('check') { dependsOn tasks.named('verifyPlacement') }
+
+tasks.register('verifyFileBrowser', JavaExec) {
+ dependsOn tasks.named('testClasses')
+ classpath = sourceSets.test.runtimeClasspath
+ mainClass = 'it.matrixarchitect.FileBrowserModelTest'
+}
+tasks.named('check') { dependsOn tasks.named('verifyFileBrowser') }
