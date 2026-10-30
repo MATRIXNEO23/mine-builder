@@ -105,7 +105,12 @@ public final class BuildExecutor {
                 var world = server.getWorld(dimension);
                 if (world == null || server != ownerServer) return;
                 // Use actual integrated-server tick pressure, not only placement speed.
-                float averageMspt = server.getAverageTickTime();
+                // Minecraft 1.20.1 Yarn exposes the rolling tick durations in nanoseconds.
+                long[] tickTimes = server.getTickTimes();
+                double sumNs = 0;
+                for (long duration : tickTimes) sumNs += duration;
+                float averageMspt = tickTimes.length == 0 ? 0.0f
+                    : (float)(sumNs / tickTimes.length / 1_000_000.0);
                 if (averageMspt >= 48.0f) {
                     batchSize = MIN_BATCH;
                     pauseTicks = averageMspt >= 55.0f ? 20 : 5;
