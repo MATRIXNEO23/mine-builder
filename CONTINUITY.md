@@ -1,3 +1,6 @@
+## 2026-10-30 — Nuovo controllo tick-based MSPT (richiesto prima della prossima build testabile)
+Commit 95d04839: BuildExecutor ora misura server.getAverageTickTime() nel thread server; >=48ms pausa 5 tick, >=55ms pausa 20 tick, >=40ms forza batch minimo 4, >=30ms massimo 8. Mantiene budget 2ms per batch e salvataggi/checkpoint preesistenti. Nuova build CI da verificare, NON consegnare artefatto precedente 766b77c5 come se contenesse queste modifiche. Limiti: MSPT medio è un indicatore ritardato, non garanzia di lag zero; verificare nel gioco.
+
 ## 2026-10-30 — Streaming adattivo senza mcfunction
 BuildExecutor.java commit 6e27389: sostituito PER_BATCH fisso 16 con batchSize adattivo 4..32, budget indicativo 2ms per tick server, misurazione System.nanoTime e adattamento dopo ogni batch. Resta la verifica per sezione e salvataggio del checkpoint. Nessun .mcfunction necessario: il gioco applica direttamente blocchi dal BuildPlan completo. LIMITI: operazioni individuali setBlockState e salvataggio chunk a fine sezione possono comunque creare lag; 2ms non è hard real-time; verifica compilazione CI e prova su mondo reale. Non cancellare salvataggi.
 
