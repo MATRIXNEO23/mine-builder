@@ -29,6 +29,11 @@ jobs:
         run: node --test scripts/verify-plan-sharing.test.mjs
       - name: Compile mod
         run: gradle --no-daemon build
+      - name: Test GPT design contract (no network or credentials)
+        run: |
+          mkdir -p /tmp/minebuilder-contract-test
+          javac -d /tmp/minebuilder-contract-test src/main/java/it/minebuilder/DesignContract.java src/test/java/it/minebuilder/DesignContractTest.java
+          java -cp /tmp/minebuilder-contract-test it.minebuilder.DesignContractTest
       - uses: actions/upload-artifact@v4
         with:
           name: mine-builder-fabric-1.20.1
