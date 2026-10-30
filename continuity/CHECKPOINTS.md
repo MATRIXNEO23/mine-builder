@@ -21,3 +21,27 @@
 - Test e compilazione: nessun risultato CI confermato; non dichiarare build riuscita.
 - Login OAuth e inferenza ChatGPT Plus: non implementati e non verificati.
 - Prossimo passo: verificare GitHub Actions, poi bridge OAuth con SDK ufficiale e prova autorizzata senza crediti aggiuntivi.
+
+
+## CP-2026-10-30-008 — Blueprint Builder distinto e download permanente
+
+# Nuova mod autonoma Blueprint Builder — 30 ottobre 2026
+
+L'utente ha autorizzato una mod distinta che importa blueprint esterni, senza sovrascrivere Mine Builder, e richiede il JAR sempre nella cartella downloads. Correzione esplicita: deve sovrascrivere il terreno, non saltare blocchi occupati.
+
+Implementato in `blueprint-builder/` su main: ID `blueprintbuilder`, package distinto, Java 17/Fabric/Minecraft 1.20.1. Tasto B rimappabile; selettore file nativo con percorso manuale e trascinamento come alternative; JSON/JSON.GZ; console affiancata; coordinate e rotazione; comandi abilitati per stato; posa a lotti, pausa, ripresa da disco, backup e ripristino. Nessun OAuth, GPT o rete nella nuova mod. Il codice e il JAR della mod Mine Builder precedente non sono sostituiti.
+
+Sovrascrittura: l'intero ingombro rettangolare viene preparato (aria nelle celle non specificate), fino a 2 milioni di posizioni. Preflight e backup completo del volume inclusi block entity NBT prima della prima mutazione. Il backup fallito impedisce la posa; modifiche successive allo snapshot causano arresto esplicito, non buchi ignorati. Backup su disco e ripristino implementati, non ancora collaudati in un mondo reale.
+
+CI `41039395919` SUCCESS sulla revisione di codice `203cf1ba10ad79e55e4ced8be18c03a233eeebfd`: build, test contratto import, test nel runtime Fabric con registro Minecraft reale (slab superiore/inferiore, scala est, hopper, quattro rotazioni e rifiuto proprietà invalida). Questo NON è un test della posa in un mondo o della UI sul PC utente.
+
+JAR verificato presente in `downloads/Blueprint-Builder-v0.1.0-Minecraft-1.20.1-Fabric.jar`, 54159 byte; SHA256 `446a80124a9f21e18c398823a86e15dd7ac48fb637c6d7f91f307741a59621a4`. Checksum accanto al JAR. Release separata `blueprint-builder-latest`. Il workflow autonomo aggiorna entrambi dopo tutti i test. Esempio: `blueprint-builder/examples/test-pedestal.json`.
+
+Limiti: solo singleplayer; .schem/.litematic/.nbt non supportati; file max64 MB decompressi, ingombro max2 milioni; NBT/entità nel blueprint esterno rifiutati; i backup conservano gli NBT dei blocchi presenti ma non entità mobili, tick o inventari giocatore. Chunk lontani richiedono avvicinamento. Stati dinamici, fluidi, gravità, UI a risoluzioni basse, memoria su i3, ripresa/crash e ripristino vanno provati; la verifica finale confronta i blocchi ma non dimostra stabilità futura di ogni macchina/redstone.
+
+Prossimo: installare il nuovo JAR accanto o separatamente a Mine Builder; aprire un mondo di prova, B, importare test-pedestal.json, costruire e confrontare slab/scala/hopper; poi testare sovrascrittura terreno, pausa/ripresa e backup. Per generazioni grandi e fedeltà reale servono blueprint di qualità; non usare CI verde come certificazione architettonica.
+
+Mine Builder originale con generazione GPT: il ramo `feature/composite-large-builds-20261030` resta distinto e non è stato fuso da questa operazione. Le sue precedenti correzioni UI sono nel checkpoint CP-2026-10-30-007. L'utente non aveva richiesto quel ramo; non attribuirgli questa scelta.
+
+---
+
