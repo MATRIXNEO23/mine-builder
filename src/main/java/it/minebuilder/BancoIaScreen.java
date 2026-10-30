@@ -523,7 +523,7 @@ public final class BancoIaScreen extends Screen {
         // The blueprint parser allows relative Y down to -32. On superflat worlds
         // the player's feet can be at Y=-60: anchoring there would place blocks
         // below the Minecraft build limit (-64). Reserve the full negative range.
-        BlockPos origin = null;
+        BlockPos selectedOrigin = null;
         if (build) {
             BlockPos playerPos = client.player.getBlockPos().add(4, 0, 4);
             int minOriginY = client.world.getBottomY() + 32;
@@ -532,10 +532,11 @@ public final class BancoIaScreen extends Screen {
                 status = Text.literal("Altezza mondo insufficiente per il progetto.");
                 return;
             }
-            origin = new BlockPos(playerPos.getX(),
+            selectedOrigin = new BlockPos(playerPos.getX(),
                 Math.max(minOriginY, Math.min(playerPos.getY(), maxOriginY)),
                 playerPos.getZ());
         }
+        final BlockPos origin = selectedOrigin;
         pendingPlan = null;
         final boolean useReferences = !originalDesign;
         String request = build
