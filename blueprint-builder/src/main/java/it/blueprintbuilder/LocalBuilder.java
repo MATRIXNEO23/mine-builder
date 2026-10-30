@@ -97,9 +97,6 @@ final class LocalBuilder {
      int index=scanning||verifying?checked:done;
      if(index>=total){
       if(scanning){
-      original.put(p,current);
-      var blockEntity=w.getBlockEntity(p);
-      if(blockEntity!=null)originalNbt.put(p,blockEntity.createNbtWithId().toString());
        scanning=false;checked=0;backingUp=true;phase="Salvataggio backup prima della posa";event(phase);
        var before=Map.copyOf(original);var nbt=Map.copyOf(originalNbt);var server=owner;var dim=dimension;
        java.util.concurrent.CompletableFuture.runAsync(()->{
