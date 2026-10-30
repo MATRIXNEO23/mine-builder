@@ -123,14 +123,14 @@ public final class BuildPlan {
     /** Parametric house: GPT chooses dimensions/materials, Java builds coherent geometry. */
     public static BuildPlan house(String json, BlockPos origin) {
         JsonObject root = JsonParser.parseString(json).getAsJsonObject();
-        int w = root.get("width").getAsInt(), d = root.get("depth").getAsInt();
-        int h = root.get("height").getAsInt();
+        int w = BlueprintFields.requiredInt(root, "width"), d = BlueprintFields.requiredInt(root, "depth");
+        int h = BlueprintFields.requiredInt(root, "height");
         if (w < 5 || w > 15 || d < 5 || d > 15 || h < 3 || h > 8)
             throw new IllegalArgumentException("House dimensions out of range");
         BlockState wall = material(root, "wall", "minecraft:oak_planks");
         BlockState roof = material(root, "roof", "minecraft:dark_oak_planks");
         BlockState floor = material(root, "floor", "minecraft:stone_bricks");
-        String roofStyle = root.has("roof_style") ? root.get("roof_style").getAsString() : "gable";
+        String roofStyle = root.has("roof_style") ? BlueprintFields.requiredString(root, "roof_style") : "gable";
         if (!Set.of("gable", "hip", "flat").contains(roofStyle))
             throw new IllegalArgumentException("Unsupported roof style");
         BlockState trim = material(root, "trim", "minecraft:oak_log");
@@ -291,11 +291,11 @@ public final class BuildPlan {
             throw new IllegalArgumentException("Blueprint input too large");
         for (JsonElement element : cuboids) {
             JsonObject c = element.getAsJsonObject();
-            int x = c.get("x").getAsInt(), y = c.get("y").getAsInt(), z = c.get("z").getAsInt();
-            int w = c.get("w").getAsInt(), h = c.get("h").getAsInt(), d = c.get("d").getAsInt();
+            int x = BlueprintFields.requiredInt(c, "x"), y = BlueprintFields.requiredInt(c, "y"), z = BlueprintFields.requiredInt(c, "z");
+            int w = BlueprintFields.requiredInt(c, "w"), h = BlueprintFields.requiredInt(c, "h"), d = BlueprintFields.requiredInt(c, "d");
             if (w < 1 || h < 1 || d < 1 || (long)w*h*d > maxBlocks)
                 throw new IllegalArgumentException("Invalid cuboid dimensions");
-            BlockState state = blueprintBlock(c.get("block").getAsString());
+            BlockState state = blueprintBlock(BlueprintFields.requiredString(c, "block"));
             for (int dx = 0; dx < w; dx++)
                 for (int dy = 0; dy < h; dy++)
                     for (int dz = 0; dz < d; dz++)
@@ -305,13 +305,13 @@ public final class BuildPlan {
         if (shapes.size() > 1024) throw new IllegalArgumentException("Too many shapes");
         for (JsonElement element : shapes) {
             JsonObject shape = element.getAsJsonObject();
-            String type = shape.get("type").getAsString();
-            int x = shape.get("x").getAsInt(), y = shape.get("y").getAsInt(),
-                z = shape.get("z").getAsInt();
-            BlockState state = blueprintBlock(shape.get("block").getAsString());
+            String type = BlueprintFields.requiredString(shape, "type");
+            int x = BlueprintFields.requiredInt(shape, "x"), y = BlueprintFields.requiredInt(shape, "y"),
+                z = BlueprintFields.requiredInt(shape, "z");
+            BlockState state = blueprintBlock(BlueprintFields.requiredString(shape, "block"));
             if (type.equals("line")) {
-                int x2 = shape.get("x2").getAsInt(), y2 = shape.get("y2").getAsInt(),
-                    z2 = shape.get("z2").getAsInt();
+                int x2 = BlueprintFields.requiredInt(shape, "x2"), y2 = BlueprintFields.requiredInt(shape, "y2"),
+                    z2 = BlueprintFields.requiredInt(shape, "z2");
                 int steps = Math.max(Math.abs(x2-x), Math.max(Math.abs(y2-y), Math.abs(z2-z)));
                 if (steps > 256) throw new IllegalArgumentException("Line too long");
                 for (int i = 0; i <= steps; i++) {
@@ -322,9 +322,9 @@ public final class BuildPlan {
             } else if (type.equals("elliptic_ring")) {
                 // General-purpose elliptical wall, arcade tier or stadium/arena ring.
                 // Centre x/z, base y, outer radii rx/rz, radial wall thickness and height.
-                int rx = shape.get("rx").getAsInt(), rz = shape.get("rz").getAsInt();
-                int thickness = shape.get("thickness").getAsInt();
-                int height = shape.get("height").getAsInt();
+                int rx = BlueprintFields.requiredInt(shape, "rx"), rz = BlueprintFields.requiredInt(shape, "rz");
+                int thickness = BlueprintFields.requiredInt(shape, "thickness");
+                int height = BlueprintFields.requiredInt(shape, "height");
                 if (rx < 2 || rz < 2 || rx > 128 || rz > 128
                     || thickness < 1 || thickness >= Math.min(rx, rz)
                     || height < 1 || height > 128)
@@ -343,9 +343,9 @@ public final class BuildPlan {
                             addCell(cells, origin, x + dx, y + dy, z + dz, state);
                     }
             } else if (type.equals("sphere") || type.equals("ellipsoid") || type.equals("cylinder")) {
-                int rx = shape.get("rx").getAsInt();
-                int ry = shape.has("ry") ? shape.get("ry").getAsInt() : rx;
-                int rz = shape.has("rz") ? shape.get("rz").getAsInt() : rx;
+                int rx = BlueprintFields.requiredInt(shape, "rx");
+                int ry = shape.has("ry") ? BlueprintFields.requiredInt(shape, "ry") : rx;
+                int rz = shape.has("rz") ? BlueprintFields.requiredInt(shape, "rz") : rx;
                 if (rx < 1 || ry < 1 || rz < 1 || rx > 64 || ry > 64 || rz > 64)
                     throw new IllegalArgumentException("Invalid shape radius");
                 boolean hollow = shape.has("hollow") && shape.get("hollow").getAsBoolean();
@@ -370,11 +370,11 @@ public final class BuildPlan {
         Set<BlockPos> explicit = new HashSet<>();
         for (JsonElement element : blocks) {
             JsonObject b = element.getAsJsonObject();
-            int x = b.get("x").getAsInt(), y = b.get("y").getAsInt(), z = b.get("z").getAsInt();
+            int x = BlueprintFields.requiredInt(b, "x"), y = BlueprintFields.requiredInt(b, "y"), z = BlueprintFields.requiredInt(b, "z");
             if (Math.abs((long)x) > 2000 || Math.abs((long)y) > 2000 || Math.abs((long)z) > 2000)
                 throw new IllegalArgumentException("Blueprint exceeds safe bounds at " + x + "," + y + "," + z);
             BlockPos pos = origin.add(x, y, z);
-            BlockState state = blueprintBlock(b.get("block").getAsString());
+            BlockState state = blueprintBlock(BlueprintFields.requiredString(b, "block"));
             if (!explicit.add(pos) && !cells.get(pos).equals(state))
                 throw new IllegalArgumentException("Conflicting explicit blocks at " + pos.toShortString());
             cells.put(pos, state);
@@ -387,6 +387,22 @@ public final class BuildPlan {
         return fromPlacements(cells.entrySet().stream()
             .map(e -> new Placement(e.getKey(), e.getValue())).toList());
     }
+
+
+    public static final String GEOMETRY_SCHEMA = """
+        Return a JSON OBJECT containing arrays cuboids, shapes, blocks (empty arrays allowed).
+        Exact record schemas, all listed fields required unless marked optional:
+        cuboids: {"x":0,"y":0,"z":0,"w":4,"h":1,"d":4,"block":"minecraft:stone"}.
+        x/y/z are relative start coordinates; w/h/d are positive integer sizes, not endpoints.
+        blocks: {"x":0,"y":1,"z":0,"block":"minecraft:air"}.
+        Every shape requires type,x,y,z,block plus:
+        line: x2,y2,z2 (integer endpoint);
+        elliptic_ring: rx,rz,thickness,height;
+        sphere/ellipsoid/cylinder: rx, optional ry/rz (default rx), optional hollow boolean.
+        Only these shape types are supported. All coordinates and dimensions are integers.
+        No alternate field names, nested coordinates, commands, or unsupported primitives.
+        Cuboids apply in order, then shapes, then explicit blocks; use air to carve openings.
+        """;
 
     private static BlockState blueprintBlock(String name) {
         String blockId = name;

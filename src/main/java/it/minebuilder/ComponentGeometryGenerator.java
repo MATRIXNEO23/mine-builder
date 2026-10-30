@@ -105,7 +105,7 @@ public final class ComponentGeometryGenerator {
                 Exception failure = null;
                 for (int attempt = 0; attempt < 2; attempt++) {
                     String answer = ChatGptInference.ask(token, model,
-                        "Generate ONLY the complete geometry for ONE component of an approved "
+                        BuildPlan.GEOMETRY_SCHEMA + "Generate ONLY the complete geometry for ONE component of an approved "
                         + "Minecraft 1.20.1 architectural project. No redesign. "
                         + "Global master plan: " + design.masterPlan()
                         + "\nIMMUTABLE component manifest: " + manifestJson
@@ -121,7 +121,8 @@ public final class ComponentGeometryGenerator {
                         + "stairs, facades and requested details. No other component geometry. "
                         + "Use Minecraft 1.20.1 IDs and valid state properties; JSON only. "
                         + (attempt == 0 ? "" : " Prior output invalid ("
-                            + failure.getClass().getSimpleName() + "); fix bounds and geometry."));
+                            + failure.getMessage() + "); fix bounds and geometry."));
+                    journal.write("component-" + i + "-attempt-" + (attempt + 1) + ".json", answer);
                     try {
                         String candidate = clean(answer);
                         BuildPlan parsed = validatePart(candidate, component, origin);

@@ -70,6 +70,7 @@ public final class BancoIaScreen extends Screen {
     private int blueprintIndex;
     private static String autoRecoveredWorld;
     private boolean journalRecoveryRunning;
+    private int consoleScroll;
 
     private record GenerationOutcome(String reply, BuildPlan plan) {}
 
@@ -79,10 +80,12 @@ public final class BancoIaScreen extends Screen {
 
     @Override
     protected void init() {
-        int panel = Math.min(300, Math.max(180, width - 24));
-        int left = (width - panel) / 2;
+        String previousPrompt = prompt == null ? "" : prompt.getText();
+        int panel = Math.min(240, Math.max(150, width / 2 - 16));
+        int left = width - panel - 12;
         int half = (panel - 8) / 2;
         int top = 62;
+        consoleScroll = 0;
         addDrawableChild(ButtonWidget.builder(Text.literal(savedTab ? "Nuovo progetto" : "Nuovo progetto *"),
             button -> { savedTab = false; clearAndInit(); })
             .dimensions(left, top, half, 20).build());
@@ -92,11 +95,9 @@ public final class BancoIaScreen extends Screen {
         if (!savedTab) {
             prompt = new TextFieldWidget(textRenderer, left, top + 30, panel, 20, Text.literal("Richiesta"));
             prompt.setMaxLength(512);
+            prompt.setText(previousPrompt);
             prompt.setPlaceholder(Text.literal("Es. Colosseo 1:1, castello originale..."));
             addDrawableChild(prompt);
-            addDrawableChild(ButtonWidget.builder(Text.literal("Ricerca: automatica (GPT)"),
-                button -> status = Text.literal("GPT sceglie quando cercare riferimenti o ispirazione."))
-                .dimensions(left, top + 56, panel, 20).build());
             addDrawableChild(ButtonWidget.builder(Text.literal("1. Collega ChatGPT"), button -> startLogin())
                 .dimensions(left, top + 84, panel, 20).build());
             addDrawableChild(ButtonWidget.builder(Text.literal("2. Progetta"), button -> sendMessage())
@@ -136,9 +137,11 @@ public final class BancoIaScreen extends Screen {
             addDrawableChild(ButtonWidget.builder(Text.literal("Successivi"), button -> showBlueprintPage(1))
                 .dimensions(left + half + 8, top + 136, half, 20).build());
         }
-        addDrawableChild(ButtonWidget.builder(Text.literal("Console LIVE / Registro"), button -> {
-            if (client != null) client.setScreen(new ConsoleScreen(this));
-        }).dimensions(left, height - 52, panel, 20).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal("Registro precedente"), b -> consoleScroll += 6)
+            .dimensions(12, height - 26, Math.max(65, (left - 30) / 2), 20).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal("Segui LIVE"), b -> consoleScroll = 0)
+            .dimensions(16 + Math.max(65, (left - 30) / 2), height - 26,
+                Math.max(65, (left - 30) / 2), 20).build());
         addDrawableChild(ButtonWidget.builder(Text.literal("Chiudi"), button -> close())
             .dimensions(left, height - 26, panel, 20).build());
         refreshBlueprints();
@@ -714,7 +717,7 @@ public final class BancoIaScreen extends Screen {
         }).thenAccept(outcome -> {
             String reply = outcome.reply();
             generatorRunning = false;
-            logConsole(reply.startsWith("Errore GPT:") ? "ERRORE: " + reply.substring(0, Math.min(350, reply.length())) : "Risposta GPT ricevuta; conversione blueprint");
+            logConsole(reply.startsWith("Errore GPT:") ? "ERRORE: " + reply : "Risposta GPT ricevuta; conversione blueprint");
             generatorStage = reply.startsWith("Errore GPT:") ? "Interrotto: verifica dettagli" : "Generazione conclusa";
             if (client != null) client.execute(() -> {
                 if (build && !reply.startsWith("Errore GPT:")) {
@@ -764,7 +767,7 @@ public final class BancoIaScreen extends Screen {
         String shortSummary = textRenderer.trimToWidth(summary, Math.max(100, width - 24));
         context.drawCenteredTextWithShadow(textRenderer, shortSummary, width / 2, 32,
             buildError.isEmpty() ? 0xAAAAAA : 0xFF7777);
-        if (blueprintSearch != null) {
+        if (savedTab && blueprintSearch != null) {
             String filter = blueprintSearch.getText().trim().toLowerCase(java.util.Locale.ROOT);
             var filtered = visibleBlueprints.stream().filter(n -> n.contains(filter)).toList();
             int pages = Math.max(1, (filtered.size() + 5) / 6);
@@ -772,17 +775,38 @@ public final class BancoIaScreen extends Screen {
             for (int i = 0; i < 6 && page * 6 + i < filtered.size(); i++) {
                 String name = filtered.get(page * 6 + i);
                 context.drawTextWithShadow(textRenderer, (name.equals(selectedBlueprint) ? "> " : "  ") + name,
-                    width / 2 - 145, 232 + i * 12, 0xFFFFFF);
+                    width - Math.min(240, Math.max(150, width / 2 - 16)) - 12, 232 + i * 12, 0xFFFFFF);
             }
         }
+        renderLiveConsole(context);
         super.render(context, mouseX, mouseY, delta);
+    }
+
+    private void renderLiveConsole(DrawContext context) {
+        int panel = Math.min(240, Math.max(150, width / 2 - 16));
+        int right = width - panel - 24;
+        context.fill(8, 58, right, height - 34, 0xCC101820);
+        context.drawTextWithShadow(textRenderer, "CONSOLE LIVE", 14, 64, 0xAADDFF);
+        int lineWidth = Math.max(40, right - 28);
+        java.util.List<net.minecraft.text.OrderedText> lines = new java.util.ArrayList<>();
+        for (String event : consoleEvents)
+            lines.addAll(textRenderer.wrapLines(Text.literal(event), lineWidth));
+        int visible = Math.max(1, (height - 120) / 12);
+        consoleScroll = Math.min(consoleScroll, Math.max(0, lines.size() - visible));
+        int end = lines.size() - consoleScroll;
+        int start = Math.max(0, end - visible);
+        for (int i = start; i < end; i++)
+            context.drawTextWithShadow(textRenderer, lines.get(i), 14, 82 + (i-start)*12, 0xDDEEDD);
+        if (!savedTab) context.drawTextWithShadow(textRenderer,
+            textRenderer.trimToWidth("Riferimenti: scelti da GPT durante Progetta", panel),
+            width - panel - 12, 122, 0xAAAAAA);
     }
 
     private void openDetails() {
         if (client == null) return;
         String error = BuildExecutor.lastError();
-        String details = "Stato: " + status.getString() + "\\n\\n"
-            + (error.isEmpty() ? "" : "Errore costruzione: " + error + "\\n\\n")
+        String details = "Stato: " + status.getString() + "\n\n"
+            + (error.isEmpty() ? "" : "Errore costruzione: " + error + "\n\n")
             + (lastReply.isEmpty() ? "Nessuna risposta ancora." : lastReply);
         client.setScreen(new DetailsScreen(this, details));
     }
@@ -857,7 +881,7 @@ public final class BancoIaScreen extends Screen {
             renderBackground(context);
             context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 12, 0xFFFFFF);
             java.util.List<net.minecraft.text.OrderedText> lines = new java.util.ArrayList<>();
-            for (String paragraph : details.split("\\n", -1)) {
+            for (String paragraph : details.split("\n", -1)) {
                 if (paragraph.isEmpty()) lines.add(net.minecraft.text.Text.literal(" ").asOrderedText());
                 else lines.addAll(textRenderer.wrapLines(Text.literal(paragraph), Math.max(100, width - 32)));
             }
