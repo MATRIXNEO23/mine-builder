@@ -614,27 +614,13 @@ public final class BancoIaScreen extends Screen {
                 // No model-generated pages or per-section material decisions.
                 generatorStage = "Geometria completa: un unico progetto";
                     logConsole("Fase avviata: Geometria completa: un unico progetto");
-                String geometry = ChatGptInference.ask(token, model,
-                    enriched + " Produce ONE COMPLETE JSON geometric blueprint for the ENTIRE "
-                    + "building, using compact cuboids and shapes for repeated structure, "
-                    + "and explicit blocks only for fine detail. All coordinates and block "
-                    + "materials are final and shared by every section. Do NOT split into "
-                    + "pages, do NOT redesign materials for separate areas. Output ONLY "
-                    + "a JSON object with arrays cuboids, shapes, blocks. The local game "
-                    + "will expand this specification and partition it deterministically. "
-                    + "Stay within x,z -128..128 and y -32..128. "
-                    + "Avoid thousands of individual block records.");
-                geometry = geometry.trim();
-                if (geometry.startsWith("```")) {
-                    int first = geometry.indexOf((char)10);
-                    int last = geometry.lastIndexOf("```");
-                    if (first >= 0 && last > first)
-                        geometry = geometry.substring(first + 1, last).trim();
-                }
-                if (geometry.length() > 2_000_000)
-                    throw new IllegalStateException("Specifica geometrica troppo lunga");
-                BuildPlan completeGeometry = BuildPlan.parseComplete(geometry, origin);
-                BlueprintContract.validateAndPartition(completeGeometry);
+                GeometryGenerator.Result generated = GeometryGenerator.generate(
+                    token, model, design, origin, stage -> {
+                        generatorStage = stage;
+                        logConsole(stage);
+                    });
+                String geometry = generated.json();
+                BuildPlan completeGeometry = generated.blueprint();
                 Path geometryTemp = java.nio.file.Files.createTempFile(jobDir, "geometry-", ".tmp");
                 try {
                     java.nio.file.Files.writeString(geometryTemp, geometry);
