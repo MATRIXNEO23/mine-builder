@@ -619,6 +619,29 @@ public final class BancoIaScreen extends Screen {
                         + architecturalBrief.substring(0, Math.min(6000, architecturalBrief.length()));
                 }
                 if (!build) return ChatGptInference.ask(token, model, enriched);
+                // Freeze a global architectural contract before any page is generated.
+                // Pages must implement this contract rather than redesigning the building.
+                generatorStage = "Definizione progetto completo e collegamenti";
+                String masterPlan = ChatGptInference.ask(token, model,
+                    "Create a COMPLETE, coherent architectural master plan for this Minecraft "
+                    + "building at 1 block = 1 metre. Do NOT output individual block coordinates. "
+                    + "Specify a shared coordinate origin (0,0,0), overall dimensions, bounding "
+                    + "box, footprint, floor heights, structural axes, symmetry, entrances, "
+                    + "corridors, stairs, arches, wall thickness, materials, facade repetition, "
+                    + "roof and all major architectural components. Define how adjoining parts "
+                    + "join with exact shared axes and heights. Clearly distinguish verified "
+                    + "measurements from approximations for real-world buildings. "
+                    + "Never claim exact fidelity without reliable measurements. "
+                    + "This plan is IMMUTABLE during geometry generation. "
+                    + "Architectural brief and references: "
+                    + enriched.substring(0, Math.min(11000, enriched.length())));
+                if (masterPlan == null || masterPlan.isBlank())
+                    throw new IllegalStateException("Progetto architettonico principale vuoto");
+                if (masterPlan.length() > 30000)
+                    throw new IllegalStateException("Progetto architettonico principale troppo lungo");
+                enriched += " IMMUTABLE GLOBAL MASTER PLAN (all pages MUST follow identical "
+                    + "axes, levels, dimensions, architectural components and joins): "
+                    + masterPlan;
                 // Persist each GPT page before requesting the next one.
                 Path journal = client.getServer().getSavePath(net.minecraft.util.WorldSavePath.ROOT)
                     .resolve("minebuilder").resolve("generation-journal");
@@ -626,6 +649,7 @@ public final class BancoIaScreen extends Screen {
                 Path jobDir = journal.resolve(java.util.UUID.randomUUID().toString());
                 java.nio.file.Files.createDirectory(jobDir);
                 streamingJob = jobDir;
+                java.nio.file.Files.writeString(jobDir.resolve("master-plan.txt"), masterPlan);
                 java.nio.file.Files.writeString(jobDir.resolve("request.txt"), message);
                 java.nio.file.Files.writeString(jobDir.resolve("origin.txt"),
                     origin.getX() + "," + origin.getY() + "," + origin.getZ());
