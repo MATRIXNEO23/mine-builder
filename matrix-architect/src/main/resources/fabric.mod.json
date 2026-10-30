@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "matrixarchitect",
+  "version": "0.1.0",
+  "name": "MATRIX Architect",
+  "description": "Bacchetta e interfaccia per posizionare schematic con WorldEdit.",
+  "environment": "*",
+  "license": "GPL-3.0-or-later",
+  "entrypoints": {
+    "main": [
+      "it.matrixarchitect.MatrixArchitect"
+    ],
+    "client": [
+      "it.matrixarchitect.ArchitectClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "minecraft": "~1.20.1",
+    "java": ">=17",
+    "fabric-api": "*",
+    "worldedit": ">=7.2.15"
+  }
+}

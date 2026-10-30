@@ -4,6 +4,8 @@ on:
     branches: [main]
     paths-ignore:
       - 'downloads/**'
+      - 'matrix-architect/**'
+      - '.github/workflows/matrix-architect.yml'
       - 'continuity/**'
       - 'blueprint-builder/**'
       - '.github/workflows/blueprint-builder.yml'

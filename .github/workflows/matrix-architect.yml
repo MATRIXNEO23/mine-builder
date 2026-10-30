@@ -1,0 +1,56 @@
+name: Build MATRIX Architect
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'matrix-architect/**'
+      - '.github/workflows/matrix-architect.yml'
+  workflow_dispatch:
+concurrency:
+  group: matrix-architect-release
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+      - name: Build addon and verify preview rotation
+        working-directory: matrix-architect
+        run: gradle --no-daemon build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: matrix-architect-fabric-1.20.1
+          path: matrix-architect/build/libs/*.jar
+          if-no-files-found: error
+      - name: Publish separate mod and save to downloads
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          FILE=MATRIX-Architect-v0.1.0-Minecraft-1.20.1-Fabric.jar
+          cp matrix-architect/build/libs/matrix-architect-0.1.0.jar "$FILE"
+          sha256sum "$FILE" > MATRIX-Architect-SHA256SUMS.txt
+          if gh release view matrix-architect-latest >/dev/null 2>&1; then
+            gh release upload matrix-architect-latest "$FILE" MATRIX-Architect-SHA256SUMS.txt --clobber
+          else
+            gh release create matrix-architect-latest "$FILE" MATRIX-Architect-SHA256SUMS.txt --title 'MATRIX Architect — bacchetta per WorldEdit' --notes 'Mod distinta da Mine Builder. Minecraft 1.20.1 Fabric Java 17. Addon per WorldEdit 7.2.15 Fabric: schematic, bacchetta, ingombro, rotazione e incolla. Test runtime in mondo nuovo necessari.' --prerelease --target "$GITHUB_SHA"
+          fi
+          for FILE in "$FILE" MATRIX-Architect-SHA256SUMS.txt; do
+            base64 -w 0 "$FILE" > /tmp/blueprint-content.b64
+            TARGET="downloads/$FILE"
+            for attempt in 1 2 3 4 5; do
+              SHA=$(gh api "repos/$GITHUB_REPOSITORY/contents/$TARGET?ref=main" --jq .sha 2>/dev/null || true)
+              jq -n --arg message 'Update standalone MATRIX Architect download' --arg branch main --arg sha "$SHA" --rawfile content /tmp/blueprint-content.b64 '{message:$message,branch:$branch,content:$content} + (if $sha == "" then {} else {sha:$sha} end)' > /tmp/blueprint-payload.json
+              if gh api --method PUT "repos/$GITHUB_REPOSITORY/contents/$TARGET" --input /tmp/blueprint-payload.json; then break; fi
+              test "$attempt" -lt 5 || exit 1
+              sleep 2
+            done
+          done
