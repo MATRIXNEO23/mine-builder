@@ -640,23 +640,9 @@ public final class BancoIaScreen extends Screen {
                             int end = json.lastIndexOf('}');
                             if (start >= 0 && end > start) json = json.substring(start, end + 1);
                         }
-                        if (json.startsWith("PAGED:")) {
-                            java.util.List<BuildPlan.Placement> combined = new java.util.ArrayList<>();
-                            java.util.Map<BlockPos, net.minecraft.block.BlockState> occupied = new java.util.HashMap<>();
-                            for (String page : json.substring(6).split("##PAGE##")) {
-                                BuildPlan part = BuildPlan.parse(page, origin);
-                                for (var placement : part.placements()) {
-                                    var existing = occupied.putIfAbsent(placement.pos(), placement.state());
-                                    if (existing != null && !existing.equals(placement.state()))
-                                        throw new IllegalArgumentException("Sezioni sovrapposte: " + placement.pos());
-                                    if (existing == null) combined.add(placement);
-                                }
-                                if (combined.size() > 2_000_000)
-                                    throw new IllegalArgumentException("Progetto oltre 2 milioni di blocchi");
-                            }
-                            pendingPlan = BuildPlan.fromPlacements(combined);
-                        } else if (json.startsWith("COMPLETE_GEOMETRY:"))
-                            pendingPlan = BuildPlan.parseComplete(json.substring("COMPLETE_GEOMETRY:".length()), origin);
+                        if (json.startsWith("COMPLETE_GEOMETRY:"))
+                            pendingPlan = BuildPlan.parseComplete(
+                                json.substring("COMPLETE_GEOMETRY:".length()), origin);
                         else pendingPlan = BuildPlan.parse(json, origin);
                         if (streamingConfirmed) {
                             if (streamingJob != null) {
