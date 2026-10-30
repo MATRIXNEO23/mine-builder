@@ -1,1 +1,1 @@
-f68d6eb37f671705311555c017d9007f44058c4eaaef270d8d872110bea11cae  MATRIX-Architect-v0.1.0-Minecraft-1.20.1-Fabric.jar
+5b6fb3eed16bcfffff086f5871a6ca67ad9269c99d44ce2caac904d99136f108  MATRIX-Architect-v0.1.0-Minecraft-1.20.1-Fabric.jar
