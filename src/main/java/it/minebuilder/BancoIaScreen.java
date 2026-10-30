@@ -450,6 +450,7 @@ public final class BancoIaScreen extends Screen {
         }
         if (pendingPlan == null || client == null) { status = Text.literal("Prima genera un progetto."); return; }
         try {
+            BuildExecutor.validateHeight(client, pendingPlan);
             placementPlan = pendingPlan;
             pendingPlan = null;
             status = Text.literal("Martello: accovacciati e clicca per ruotare; clic normale per costruire.");
@@ -894,7 +895,7 @@ public final class BancoIaScreen extends Screen {
         pollConsoleStage();
         renderBackground(context);
         context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 12, 0xFFFFFF);
-        String buildError = BuildExecutor.lastError();
+        String buildError = BuildExecutor.lastErrorFor(client);
         if (generatorRunning || generatorPages > 0) {
             String activity = "Generatore: " + generatorStage + " | pagine " + generatorPages
                 + " | blocchi " + generatorBlocks;
