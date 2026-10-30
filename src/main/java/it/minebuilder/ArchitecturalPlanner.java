@@ -32,6 +32,12 @@ public final class ArchitecturalPlanner {
             progress.accept(references);
         }
         try {
+            String encyclopedia = ArchitectureResearch.encyclopedicReferences(request);
+            references += "\n" + encyclopedia.substring(0, Math.min(3200, encyclopedia.length()));
+        } catch (Exception ex) {
+            progress.accept("Contesto enciclopedico non disponibile: " + ex.getClass().getSimpleName());
+        }
+        try {
             ArchitectureResearch.VisualReference visual = ArchitectureResearch.visualReference(request);
             if (visual != null) {
                 progress.accept("GPT: analisi immagine " + visual.title());
