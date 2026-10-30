@@ -14,6 +14,10 @@ public final class ArchitecturalPlanner {
             "You are the autonomous architect for a Minecraft 1.20.1 builder. "
             + "Interpret this user request: " + request + ". "
             + "FIRST LINE must be exactly RESEARCH=NONE, RESEARCH=INSPIRATION or RESEARCH=RECONSTRUCTION. "
+            + "SECOND LINE must be exactly GEOMETRY=SINGLE or GEOMETRY=COMPONENTS. "
+            + "Choose COMPONENTS for a stadium, large multi-part building, neighborhood or town, "
+            + "or when one compact response cannot contain all requested detail. Otherwise SINGLE. "
+            + "Component geometry must share the immutable global axes, floors and dimensions. "
             + "Choose NONE if references add no useful value; INSPIRATION if photographs or plans "
             + "would help create an ORIGINAL design; RECONSTRUCTION for a named real structure "
             + "requiring evidence and 1:1 fidelity. User does not have to provide sources. "
@@ -64,6 +68,8 @@ public final class ArchitecturalPlanner {
             + "Do not output block coordinates or JSON. Mode: " + design.researchMode()
             + "\nInitial plan: " + design.masterPlan()
             + "\nResearch: " + references.substring(0, Math.min(9500, references.length())));
-        return new DesignContract(request, revised, design.researchMode());
+        // Research consolidation cannot silently change the geometry route or global plan mode.
+        String mode = design.requiresComponents() ? "GEOMETRY=COMPONENTS" : "GEOMETRY=SINGLE";
+        return new DesignContract(request, mode + "\n" + revised, design.researchMode());
     }
 }

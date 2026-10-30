@@ -13,6 +13,11 @@ public final class GenerationJournal {
 
     public Path directory() { return directory; }
 
+    public static GenerationJournal reopen(Path directory) throws IOException {
+        if (!Files.isDirectory(directory)) throw new IOException("Diario non disponibile");
+        return new GenerationJournal(directory);
+    }
+
     public static GenerationJournal create(Path worldRoot, DesignContract design, BlockPos origin)
             throws IOException {
         Path journal = worldRoot.resolve("minebuilder").resolve("generation-journal");

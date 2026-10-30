@@ -371,7 +371,7 @@ public final class BuildPlan {
         for (JsonElement element : blocks) {
             JsonObject b = element.getAsJsonObject();
             int x = b.get("x").getAsInt(), y = b.get("y").getAsInt(), z = b.get("z").getAsInt();
-            if (Math.abs((long)x) > 128 || y < -32 || y > 128 || Math.abs((long)z) > 128)
+            if (Math.abs((long)x) > 2000 || Math.abs((long)y) > 2000 || Math.abs((long)z) > 2000)
                 throw new IllegalArgumentException("Blueprint exceeds safe bounds at " + x + "," + y + "," + z);
             BlockPos pos = origin.add(x, y, z);
             BlockState state = blueprintBlock(b.get("block").getAsString());

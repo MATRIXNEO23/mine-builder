@@ -32,6 +32,12 @@ public record DesignContract(String request, String masterPlan, ResearchMode res
         return new DesignContract(request, trimmed.substring(newline + 1).trim(), mode);
     }
 
+    /** Returns true only when GPT explicitly chose the component-based geometry route. */
+    public boolean requiresComponents() {
+        return masterPlan.lines().findFirst().orElse("").trim()
+            .equalsIgnoreCase("GEOMETRY=COMPONENTS");
+    }
+
     public String geometryInstruction() {
         return "IMMUTABLE ARCHITECTURAL CONTRACT: " + masterPlan
             + "\nOriginal request: " + request

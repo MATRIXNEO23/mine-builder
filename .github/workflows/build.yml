@@ -5,6 +5,8 @@ on:
     paths-ignore:
       - 'downloads/**'
   workflow_dispatch:
+  pull_request:
+    branches: [main]
 concurrency:
   group: mine-builder-publish-main
   cancel-in-progress: false
@@ -28,7 +30,7 @@ jobs:
       - name: Test OAuth inference gate (mock, no credentials)
         run: node --test scripts/verify-plan-sharing.test.mjs
       - name: Compile mod
-        run: gradle --no-daemon build
+        run: gradle --no-daemon build verifyCompositeManifest
       - name: Test GPT design contract (no network or credentials)
         run: |
           mkdir -p /tmp/minebuilder-contract-test
@@ -45,6 +47,7 @@ jobs:
           test -n "$JAR"
           cp "$JAR" Mine-Builder-v0.1.0-Minecraft-1.20.1-Fabric.jar
       - name: Publish latest test build to GitHub Releases
+        if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -55,6 +58,7 @@ jobs:
             gh release create "$TAG" Mine-Builder-v0.1.0-Minecraft-1.20.1-Fabric.jar --title "Mine Builder - ultima build di test" --notes "Build di test per Minecraft 1.20.1 Fabric. Il collegamento GPT non è ancora operativo." --prerelease --target "$GITHUB_SHA"
           fi
       - name: Save JAR inside repository downloads folder
+        if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
