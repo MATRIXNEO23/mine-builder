@@ -699,6 +699,15 @@ public final class BancoIaScreen extends Screen {
                     com.google.gson.JsonObject object = com.google.gson.JsonParser.parseString(answer).getAsJsonObject();
                     if (!object.has("complete") || !object.get("complete").getAsJsonPrimitive().isBoolean())
                         throw new IllegalStateException("Risposta GPT senza indicatore di completamento");
+                    // Validate against all previously accepted coordinates BEFORE publishing
+                    // a journal page. A rejected page must never become buildable.
+                    for (var placement : parsedPage.placements()) {
+                        var existing = occupied.get(placement.pos());
+                        if (existing != null && !existing.equals(placement.state()))
+                            throw new IllegalStateException("Conflitto geometrico tra pagine: " + placement.pos());
+                    }
+                    if ((long) occupied.size() + parsedPage.placements().size() > 2_000_000L)
+                        throw new IllegalStateException("Limite di sicurezza del progetto superato");
                     Path tmpPage = java.nio.file.Files.createTempFile(jobDir, "page-", ".tmp");
                     try {
                         java.nio.file.Files.writeString(tmpPage, answer);
@@ -709,13 +718,9 @@ public final class BancoIaScreen extends Screen {
                         java.nio.file.Files.deleteIfExists(tmpPage);
                     }
                     for (var placement : parsedPage.placements()) {
-                        var existing = occupied.putIfAbsent(placement.pos(), placement.state());
-                        if (existing != null && !existing.equals(placement.state()))
-                            throw new IllegalStateException("Conflitto geometrico tra pagine: " + placement.pos());
-                        if (existing == null) validated.add(placement);
+                        if (occupied.putIfAbsent(placement.pos(), placement.state()) == null)
+                            validated.add(placement);
                     }
-                    if (validated.size() > 2_000_000)
-                        throw new IllegalStateException("Limite di sicurezza del progetto superato");
                     pages.add(answer);
                     if (page == 0 && !streamingConfirmed && client != null) {
                         BuildPlan first = parsedPage;
