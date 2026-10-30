@@ -650,6 +650,43 @@ public final class BancoIaScreen extends Screen {
                     origin.getX() + "," + origin.getY() + "," + origin.getZ());
                 java.nio.file.Files.writeString(jobDir.resolve("design.txt"),
                     enriched.substring(0, Math.min(enriched.length(), 12000)));
+                // One complete compact geometric specification, expanded locally by Java.
+                // No model-generated pages or per-section material decisions.
+                generatorStage = "Geometria completa: un unico progetto";
+                String geometry = ChatGptInference.ask(token, model,
+                    enriched + " Produce ONE COMPLETE JSON geometric blueprint for the ENTIRE "
+                    + "building, using compact cuboids and shapes for repeated structure, "
+                    + "and explicit blocks only for fine detail. All coordinates and block "
+                    + "materials are final and shared by every section. Do NOT split into "
+                    + "pages, do NOT redesign materials for separate areas. Output ONLY "
+                    + "a JSON object with arrays cuboids, shapes, blocks. The local game "
+                    + "will expand this specification and partition it deterministically. "
+                    + "Stay within x,z -128..128 and y -32..128. "
+                    + "Avoid thousands of individual block records.");
+                geometry = geometry.trim();
+                if (geometry.startsWith("```")) {
+                    int first = geometry.indexOf((char)10);
+                    int last = geometry.lastIndexOf("```");
+                    if (first >= 0 && last > first)
+                        geometry = geometry.substring(first + 1, last).trim();
+                }
+                if (geometry.length() > 2_000_000)
+                    throw new IllegalStateException("Specifica geometrica troppo lunga");
+                BuildPlan completeGeometry = BuildPlan.parseComplete(geometry, origin);
+                completeGeometry.validateSections();
+                Path geometryTemp = java.nio.file.Files.createTempFile(jobDir, "geometry-", ".tmp");
+                try {
+                    java.nio.file.Files.writeString(geometryTemp, geometry);
+                    java.nio.file.Files.move(geometryTemp, jobDir.resolve("complete-geometry.json"),
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                } finally {
+                    java.nio.file.Files.deleteIfExists(geometryTemp);
+                }
+                generatorPages = 1;
+                generatorBlocks = completeGeometry.placements().size();
+                generatorStage = "Progetto completo verificato: "
+                    + completeGeometry.sections().size() + " sezioni";
+                return "COMPLETE_GEOMETRY:" + geometry;
                 java.util.List<String> pages = new java.util.ArrayList<>();
                 java.util.List<BuildPlan.Placement> validated = new java.util.ArrayList<>();
                 java.util.Map<BlockPos, net.minecraft.block.BlockState> occupied = new java.util.HashMap<>();
@@ -768,7 +805,8 @@ public final class BancoIaScreen extends Screen {
                             if (first >= 0 && last > first) json = json.substring(first + 1, last).trim();
                         }
                         // Accept a JSON object wrapped in explanatory text, without executing commands.
-                        if (!json.startsWith("{") && !json.startsWith("PAGED:")) {
+                        if (!json.startsWith("{") && !json.startsWith("PAGED:")
+                                && !json.startsWith("COMPLETE_GEOMETRY:")) {
                             int start = json.indexOf('{');
                             int end = json.lastIndexOf('}');
                             if (start >= 0 && end > start) json = json.substring(start, end + 1);
@@ -788,7 +826,9 @@ public final class BancoIaScreen extends Screen {
                                     throw new IllegalArgumentException("Progetto oltre 2 milioni di blocchi");
                             }
                             pendingPlan = BuildPlan.fromPlacements(combined);
-                        } else pendingPlan = BuildPlan.parse(json, origin);
+                        } else if (json.startsWith("COMPLETE_GEOMETRY:"))
+                            pendingPlan = BuildPlan.parseComplete(json.substring("COMPLETE_GEOMETRY:".length()), origin);
+                        else pendingPlan = BuildPlan.parse(json, origin);
                         if (streamingConfirmed) {
                             if (streamingJob != null) {
                                 try {
