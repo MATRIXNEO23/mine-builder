@@ -21,3 +21,14 @@
 - Test e compilazione: nessun risultato CI confermato; non dichiarare build riuscita.
 - Login OAuth e inferenza ChatGPT Plus: non implementati e non verificati.
 - Prossimo passo: verificare GitHub Actions, poi bridge OAuth con SDK ufficiale e prova autorizzata senza crediti aggiuntivi.
+
+## CP-2026-10-30-003 — 30 ottobre 2026 — verifica della progettazione per componenti (isolata)
+
+- Main canonico prima dei lavori: `7e7e5a3`. Ramo review: `feature/composite-large-builds-20261030`; PR #1, senza merge.
+- Ultimo workflow main verde: 40992419917. Il workflow 40992403280 è CANCELLED, non FAILED.
+- Prime CI nuove riuscite: 40994491465 e 40994624758, test Gradle e manifest incluso; ultima CI e prova nel mondo ancora necessarie.
+- Codice sperimentale: componenti con un piano comune, bounds, conflitti, journal persistente, correzione coordinate dettagli, recupero e UI. **Non considerare certificata la qualità.**
+- Non distrutti file precedenti, nessun JAR principale sostituito, nessuna nuova spesa introdotta.
+- Resta: verificare regressioni, crash/recovery, protezione costruzioni artificiali, velocità su i3, progetto paese oltre 2 milioni di blocchi.
+- Prossimo passo: test su copia del mondo, audit per eventuale merge, generazione realmente disk-based per città intere.
+

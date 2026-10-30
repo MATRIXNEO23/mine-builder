@@ -1,3 +1,17 @@
+## Aggiornamento review grandi progetti — 30 ottobre 2026 (ramo di prova)
+
+Fonte reale: main 7e7e5a3; il workflow grigio 40992403280 è CANCELLED (non un errore di compilazione), e il successivo 40992419917 è SUCCESS. Ultimi commit main ampliano coordinate grandi ma lasciano il limite esplicito a ±128 e singolo JSON geometrico.
+
+**Implementazione in corso NON integrata in main:** branch `feature/composite-large-builds-20261030`, PR #1. Introdotti manifest globale di componenti, scelta GPT SINGLE/COMPONENTS, salvataggio atomico e recupero dei componenti, controllo bounds e conflitti prima di registrare parti valide, fix coordinate esplicite ±2000, consegna diretta BuildPlan alla GUI, protezione richieste concorrenti e ordinamento journal per modifica. CI preliminari 40994491465 e 40994624758: SUCCESS. Ogni commit successivo necessita di propria CI, e il test in Minecraft **non è eseguito**.
+
+**Mancanze critiche:** limite totale 2 milioni ancora presente, qualità/giunzioni e fedeltà 1:1 non dimostrate, preflight globale/backup e ripresa dopo crash non collaudati, protezione blocchi artificiali incompleta, save chunk potenzialmente bloccante, inferenza reale e quota senza costi non confermate qui. Mai confondere compilazione con build sicura.
+
+**Prossimo passo:** confermare CI finale della PR, provare JAR del ramo solo su copia di mondo, controllare crash/restart e giunzioni; valutare separatamente l'adozione e poi affrontare streaming geometrico senza caricare tutto in RAM. Nessuna scrittura distruttiva autorizzata su mondi importanti.
+
+Documentazione dettagliata: `docs/LARGE_BUILDS_REVIEW_2026-10-30.md`.
+
+---
+
 ## Aggiornamento migrazione v3 — seconda e terza fase
 CI del commit 90ef7276 confermata SUCCESS. Architettura estratta in ArchitecturalPlanner e GeometryGenerator; aggiunti test DesignContractTest in CI. Ricerca estesa a Wikipedia (contesto testuale) e Commons (immagini); recupero origine scritto atomicamente prima del progress marker; retry limitato su blueprint JSON non valido. Codice fino a commit 66c14e31, CI ultima revisione da verificare.
 
