@@ -468,6 +468,27 @@ public final class BancoIaScreen extends Screen {
 
     public static boolean hasPlacementPlan() { return placementPlan != null; }
 
+    /** Reject obviously non-house geometry before it reaches the world. */
+    private static void validateSimpleHouse(BuildPlan plan) {
+        int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
+        int solid = 0;
+        for (var cell : plan.placements()) {
+            if (cell.state().isAir()) continue;
+            var p = cell.pos();
+            minX = Math.min(minX, p.getX()); maxX = Math.max(maxX, p.getX());
+            minY = Math.min(minY, p.getY()); maxY = Math.max(maxY, p.getY());
+            minZ = Math.min(minZ, p.getZ()); maxZ = Math.max(maxZ, p.getZ());
+            solid++;
+        }
+        if (solid < 90 || maxX - minX + 1 < 8 || maxZ - minZ + 1 < 7
+                || maxY - minY + 1 < 4 || maxY - minY + 1 > 12) {
+            throw new IllegalArgumentException("Blueprint casa non valido: forma troppo stretta, "
+                + "troppo alta o incompleta. Nessun blocco costruito. "
+                + plan.geometryReport());
+        }
+    }
+
     private void sendMessage() {
         String token = accessToken;
         String model = selectedModel;
@@ -708,6 +729,7 @@ public final class BancoIaScreen extends Screen {
                     throw new IllegalStateException("Specifica geometrica troppo lunga");
                 BuildPlan completeGeometry = BuildPlan.parseComplete(geometry, origin);
                 completeGeometry.validateSections();
+                if (simpleHouse) validateSimpleHouse(completeGeometry);
                 Path geometryTemp = java.nio.file.Files.createTempFile(jobDir, "geometry-", ".tmp");
                 try {
                     java.nio.file.Files.writeString(geometryTemp, geometry);
