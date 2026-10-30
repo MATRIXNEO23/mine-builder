@@ -19,6 +19,7 @@ public final class BuildExecutor {
     private static final int MAX_BATCH = 32;
     private static final long TIME_BUDGET_NS = 2_000_000L;
     private static int batchSize = 16;
+    private static volatile int cooldownTicks = 0;
     private static Queue<BuildPlan.Placement> pending = new ArrayDeque<>();
     private static Queue<BuildPlan> remainingSections = new ArrayDeque<>();
     private static int completedSections;
@@ -68,6 +69,7 @@ public final class BuildExecutor {
             throw new IllegalStateException("Impossibile salvare il progetto prima di costruire", e);
         }
         batchSize = 16;
+        cooldownTicks = 0;
         activePlan = plan;
         activeDimension = key;
         remainingSections = new ArrayDeque<>(plan.sections());
@@ -83,6 +85,7 @@ public final class BuildExecutor {
 
     public static void tick(MinecraftClient client) {
         if (inFlight) return;
+        if (cooldownTicks > 0) { cooldownTicks--; return; }
         if (pending.isEmpty() && !remainingSections.isEmpty()) {
             currentSection = remainingSections.remove().placements();
         pending = new ArrayDeque<>(currentSection);
@@ -194,8 +197,12 @@ public final class BuildExecutor {
                 }
                 // Scale down under load; increase slowly when placements are cheap.
                 long elapsed = System.nanoTime() - started;
-                if (elapsed > TIME_BUDGET_NS)
+                if (elapsed > TIME_BUDGET_NS) {
                     batchSize = Math.max(MIN_BATCH, batchSize / 2);
+                    // Skip upcoming client ticks when this placement batch was costly.
+                    // No version-specific Minecraft server timing API required.
+                    cooldownTicks = elapsed > TIME_BUDGET_NS * 3 ? 5 : 2;
+                }
                 else if (processed == batchSize && elapsed < TIME_BUDGET_NS / 2)
                     batchSize = Math.min(MAX_BATCH, batchSize + 2);
                 if (pending.isEmpty()) {
@@ -317,6 +324,8 @@ public final class BuildExecutor {
         if (done < 0 || done > sections.size()) throw new IOException("Avanzamento non valido");
         if (done == sections.size()) throw new IOException("Costruzione gia completata");
         plan.validateSections();
+        batchSize = 16;
+        cooldownTicks = 0;
         activePlan = plan;
         activeDimension = dimension;
         ownerServer = client.getServer();
