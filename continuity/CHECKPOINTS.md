@@ -77,3 +77,19 @@ Codice `e5f5ddfde61114e2788ced698633a9aa2fa708af`, run `41054486841`: compilazio
 
 ---
 
+
+
+## CP-2026-10-30-011 — tasti senza conflitti; limite grande aperto
+
+# Comandi senza conflitti e blocco grandi schematic — 30 ottobre 2026
+
+Segnalazioni utente: il caricamento di una struttura grande viene rifiutato per ingombro oltre2milioni; il tasto P apre Interazioni sociali. L'utente richiede tasti non usati da Minecraft. CORRETTO in questa revisione solo il gruppo di tasti; il limite2milioni rimane un open loop prioritario, non dichiararlo risolto o chiedere di ridurre file/scala.
+
+Nuovi default MATRIX Architect: F10 pannello, F7 ruota, F6 posiziona, F9 undo, F12 sblocca. Frecce e PgUp/PgDn restano spostamento/altezza. Migrazione delle vecchie assegnazioni K/R/P/U/L al primo tick, comprese quelle salvate in options; controllo dei tasti effettivamente occupati da Minecraft/altre mod e selezione alternativa libera (tasti funzione o tastierino). Se tutte le alternative sono occupate il comando resta non assegnato. Personalizzazioni senza conflitti conservate; quelle in conflitto disabilitate nell'addon senza modificare i controlli delle altre funzioni. HUD mostra assegnazioni effettive anziche testo fisso. Verificare sul PC la migrazione e le opzioni; i test non avviano la GUI.
+
+Codice `50010bd973d965426d7b328936977de1a8570054`; CI `41057564097` SUCCESS (test selezione tasti liberi, browser file e rotazioni). JAR aggiornato in downloads, checksum `e60e56514f249441db6582d3172e2869b3178a4a9b2ab0f89a1f8fe9e750ac91  MATRIX-Architect-v0.1.0-Minecraft-1.20.1-Fabric.jar`. Installare sostituendo vecchio JAR e riavviando. Nessun cambiamento a geometria/posa o limite d'ingombro in questa correzione.
+
+Prossimo prioritario: gestione configurabile e sostenibile degli schematic grandi senza ridimensionamento; riesaminare caricamento in RAM, storia undo e incolla sincrono WorldEdit prima di dichiarare supporto scalabile. L'errore sul limite viene emesso dopo lettura clipboard e prima della posa: non e prova che il file sia invalido. Conservare separatamente mod Mine Builder, Blueprint Builder e MATRIX Architect.
+
+---
+
