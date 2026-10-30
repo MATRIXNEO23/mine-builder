@@ -685,7 +685,7 @@ public final class BancoIaScreen extends Screen {
                 if (geometry.length() > 2_000_000)
                     throw new IllegalStateException("Specifica geometrica troppo lunga");
                 BuildPlan completeGeometry = BuildPlan.parseComplete(geometry, origin);
-                completeGeometry.validateSections();
+                BlueprintContract.validateAndPartition(completeGeometry);
                 Path geometryTemp = java.nio.file.Files.createTempFile(jobDir, "geometry-", ".tmp");
                 try {
                     java.nio.file.Files.writeString(geometryTemp, geometry);
@@ -755,7 +755,7 @@ public final class BancoIaScreen extends Screen {
                             status = Text.literal("Progetto salvato; costruzione progressiva attiva.");
                             return;
                         }
-                        pendingPlan.validateSections();
+                        BlueprintContract.validateAndPartition(pendingPlan);
                         BuildExecutor.validateHeight(client, pendingPlan);
                         logConsole("Blueprint validato: " + pendingPlan.placements().size() + " blocchi, " + pendingPlan.sections().size() + " sezioni");
                         lastPlan = pendingPlan;
