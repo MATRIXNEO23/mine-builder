@@ -11,7 +11,10 @@ public final class GeometryGenerator {
     public record Result(String json, BuildPlan blueprint) {}
 
     public static Result generate(String token, String model, DesignContract design,
-                                  BlockPos origin, Consumer<String> progress) throws Exception {
+                                  BlockPos origin, Consumer<String> progress,
+                                  GenerationJournal journal) throws Exception {
+        if (design.requiresComponents())
+            return ComponentGeometryGenerator.generate(token, model, design, origin, progress, journal);
         progress.accept("GPT: geometria completa");
         String instruction = design.geometryInstruction()
             + " Produce ONE COMPLETE JSON geometric blueprint for the ENTIRE building. "
