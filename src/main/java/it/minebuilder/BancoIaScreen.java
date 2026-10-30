@@ -563,25 +563,8 @@ public final class BancoIaScreen extends Screen {
         }
         final BlockPos origin = selectedOrigin;
         pendingPlan = null;
-        String request = build
-            ? "Design the requested Minecraft object faithfully: " + message
-              + ". You are a universal block architect, NOT a house generator. "
-              + "Return ONLY JSON {\"blocks\":[{\"x\":0,\"y\":0,\"z\":0,\"block\":\"minecraft:stone\"}]}. "
-              + "You may return arrays blocks, cuboids, shapes. A block is {x,y,z,block}; a cuboid is {x,y,z,w,h,d,block}; a shape is a line {type:line,x,y,z,x2,y2,z2,block}, sphere/ellipsoid/cylinder {type:sphere,x,y,z,rx,ry,rz,block,hollow:false}, or elliptic_ring {type:elliptic_ring,x,y,z,rx,rz,thickness,height,block}. Elliptic rings are centred at x/z and start at y; use them for amphitheatres, stadiums, rotundas and original oval architecture. "
-              + "Use compact primitives for volumes and shapes; avoid overlapping primitives with different materials. Explicit blocks are a final detail layer and override primitive geometry for doors, windows, openings, stairs, roof trim and decorations. Do not give two different explicit blocks at the same coordinate. All coordinates relative to origin and valid Minecraft 1.20.1 block IDs. "
-              + "Use the full Minecraft 1.20.1 palette: stairs, slabs, walls, fences, panes, trapdoors, doors, logs, terracotta, concrete and decorative blocks to reproduce silhouettes, texture, shading, fine trim, arches, roofs and realistic visual effects. "
-              + "For directional or partial blocks encode exact block states as block strings, e.g. minecraft:stone_brick_stairs[facing=north,half=bottom], minecraft:stone_brick_slab[type=top], minecraft:oak_log[axis=x]. "
-              + "Choose valid state values for each block; connect adjoining elements visually, and ensure stair and door orientations make sense. Prefer nuanced architectural details over featureless full-block walls. "
-              + "Include every explicitly requested feature and choose geometry appropriate to the subject. "
-              + "For trees include trunk branches and leaves; for pools include water and basin; for buildings include openings and interiors. "
-              + "For multi-storey buildings provide a walkable INTERNAL staircase or ladder linking every floor, with clear floor openings and access from the entrance; never require exterior access to upper floors. "
-              + "Use minecraft:air blocks explicitly to clear doorways, stairs and passageways. "
-              + "Descriptive adjectives such as scary, gothic, enormous or haunted describe style and must not change the requested object category. "
-              + "Do not substitute a house for another requested object. "
-              + "Maximum 20000 blocks; x,z within -128..128, y within -32..128; avoid conflicting materials at the same position. "
-              + "If too complex for a single response, return a coherent small section rather than claiming completion. "
-              + "No markdown, no explanation."
-            : message;
+        // The original user request is canonical; geometry instructions live in GeometryGenerator.
+        String request = message;
         status = Text.literal(build ? "GPT interpreta e progetta..." : "GPT sta rispondendo...");
         generatorRunning = build;
         generatorPages = 0;
@@ -596,7 +579,7 @@ public final class BancoIaScreen extends Screen {
                     logConsole(stage);
                 });
                 String masterPlan = design.masterPlan();
-                String enriched = request + "\n" + design.geometryInstruction();
+                String enriched = design.geometryInstruction();
                 // Persist each GPT page before requesting the next one.
                 Path journal = client.getServer().getSavePath(net.minecraft.util.WorldSavePath.ROOT)
                     .resolve("minebuilder").resolve("generation-journal");
