@@ -14,6 +14,10 @@ public final class ArchitecturalPlanner {
             "You are the autonomous architect for a Minecraft 1.20.1 builder. "
             + "Interpret this user request: " + request + ". "
             + "FIRST LINE must be exactly RESEARCH=NONE, RESEARCH=INSPIRATION or RESEARCH=RECONSTRUCTION. "
+            + "SECOND LINE must be exactly GEOMETRY=SINGLE or GEOMETRY=COMPONENTS. "
+            + "Choose COMPONENTS for a stadium, large multi-part building, neighborhood or town, "
+            + "or when one compact response cannot contain all requested detail. Otherwise SINGLE. "
+            + "Component geometry must share the immutable global axes, floors and dimensions. "
             + "Choose NONE if references add no useful value; INSPIRATION if photographs or plans "
             + "would help create an ORIGINAL design; RECONSTRUCTION for a named real structure "
             + "requiring evidence and 1:1 fidelity. User does not have to provide sources. "
@@ -21,7 +25,21 @@ public final class ArchitecturalPlanner {
             + "function, footprint, dimensions, shared coordinate axes, floors, roof, entrances, "
             + "interior circulation, materials and structural connections. "
             + "Do not output block coordinates or JSON. Never confuse estimates with verified measurements.");
-        DesignContract design = DesignContract.fromPlanningResponse(request, firstPlan);
+        DesignContract design;
+        try {
+            design = DesignContract.fromPlanningResponse(request, firstPlan);
+        } catch (IllegalArgumentException invalid) {
+            progress.accept("Contratto GPT non valido: correzione intestazioni");
+            String repaired = ChatGptInference.ask(token, model,
+                "Rewrite this architectural plan as the REQUIRED machine-readable contract. "
+                + "Line 1: RESEARCH=NONE, RESEARCH=INSPIRATION or RESEARCH=RECONSTRUCTION. "
+                + "Line 2: GEOMETRY=SINGLE or GEOMETRY=COMPONENTS. "
+                + "Then include the full architectural plan. Choose COMPONENTS for large "
+                + "multi-part buildings and towns. Preserve the original requested structure "
+                + "and all details, axes, dimensions and research intent; do NOT output JSON. "
+                + "Original request: " + request + "\nRejected response:\n" + firstPlan);
+            design = DesignContract.fromPlanningResponse(request, repaired);
+        }
         if (design.researchMode() == DesignContract.ResearchMode.NONE) return design;
 
         progress.accept("Ricerca autonoma: " + design.researchMode());
@@ -64,6 +82,8 @@ public final class ArchitecturalPlanner {
             + "Do not output block coordinates or JSON. Mode: " + design.researchMode()
             + "\nInitial plan: " + design.masterPlan()
             + "\nResearch: " + references.substring(0, Math.min(9500, references.length())));
-        return new DesignContract(request, revised, design.researchMode());
+        // Research consolidation cannot silently change the geometry route or global plan mode.
+        String mode = design.requiresComponents() ? "GEOMETRY=COMPONENTS" : "GEOMETRY=SINGLE";
+        return new DesignContract(request, mode + "\n" + revised, design.researchMode());
     }
 }

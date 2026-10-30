@@ -29,7 +29,21 @@ public record DesignContract(String request, String masterPlan, ResearchMode res
         ResearchMode mode;
         try { mode = ResearchMode.valueOf(directive.substring("RESEARCH=".length()).trim()); }
         catch (IllegalArgumentException ex) { throw new IllegalArgumentException("Modalita ricerca GPT non valida", ex); }
-        return new DesignContract(request, trimmed.substring(newline + 1).trim(), mode);
+        String plan = trimmed.substring(newline + 1).trim();
+        int nextLine = plan.indexOf('\n');
+        if (nextLine < 0) throw new IllegalArgumentException("Progetto senza modalità geometrica");
+        String geometryHeader = plan.substring(0, nextLine).trim().toUpperCase(Locale.ROOT);
+        if (!geometryHeader.equals("GEOMETRY=SINGLE") && !geometryHeader.equals("GEOMETRY=COMPONENTS"))
+            throw new IllegalArgumentException("Modalità geometrica GPT non valida");
+        if (plan.substring(nextLine + 1).isBlank())
+            throw new IllegalArgumentException("Progetto architettonico privo di dettagli");
+        return new DesignContract(request, geometryHeader + "\n" + plan.substring(nextLine + 1).trim(), mode);
+    }
+
+    /** Returns true only when GPT explicitly chose the component-based geometry route. */
+    public boolean requiresComponents() {
+        return masterPlan.lines().findFirst().orElse("").trim()
+            .equalsIgnoreCase("GEOMETRY=COMPONENTS");
     }
 
     public String geometryInstruction() {

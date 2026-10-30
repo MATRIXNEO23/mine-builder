@@ -46,3 +46,9 @@ Il progetto globale determina tipologia, geometria, assi, livelli, materiali, ci
 2. Test nel gioco: villa originale ispirata a fonti; casa senza ricerca; edificio reale con stime dichiarate; riavvio e ripresa; area occupata; mondo superflat.
 3. Nessuna perdita o cancellazione di salvataggi precedenti.
 4. Zero API a consumo, crediti extra o hosting a pagamento.
+
+## Estensione sperimentale su PR #1 — grandi strutture (30 ottobre 2026)
+
+La via canonica per progetti piccoli resta un singolo JSON. Se GPT sceglie `GEOMETRY=COMPONENTS`, il progetto viene invece suddiviso in un manifest globale immutabile (2..64 componenti con ID, descrizione e bounding box); ciascun componente viene dettagliato e salvato separatamente. La geometria completa è controllata per bounds, conflitti e sezioni prima di poter avviare la posa; il motore non costruisce componenti indipendenti mentre la progettazione è incompleta.
+
+Questa estensione è **nel ramo sperimentale**, non in main. Mantiene ancora 2 milioni di blocchi totali e l'assemblaggio in RAM. Il supporto realmente scalabile per interi paesi e la validazione architettonica con fonti verificabili sono ulteriori fasi; nessun risultato in-game è stato attestato. Vedi `docs/LARGE_BUILDS_REVIEW_2026-10-30.md`.

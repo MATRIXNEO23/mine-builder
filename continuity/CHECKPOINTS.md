@@ -21,3 +21,63 @@
 - Test e compilazione: nessun risultato CI confermato; non dichiarare build riuscita.
 - Login OAuth e inferenza ChatGPT Plus: non implementati e non verificati.
 - Prossimo passo: verificare GitHub Actions, poi bridge OAuth con SDK ufficiale e prova autorizzata senza crediti aggiuntivi.
+
+## CP-2026-10-30-003 — 30 ottobre 2026 — verifica della progettazione per componenti (isolata)
+
+- Main canonico prima dei lavori: `7e7e5a3`. Ramo review: `feature/composite-large-builds-20261030`; PR #1, senza merge.
+- Ultimo workflow main verde: 40992419917. Il workflow 40992403280 è CANCELLED, non FAILED.
+- Prime CI nuove riuscite: 40994491465 e 40994624758, test Gradle e manifest incluso; ultima CI e prova nel mondo ancora necessarie.
+- Codice sperimentale: componenti con un piano comune, bounds, conflitti, journal persistente, correzione coordinate dettagli, recupero e UI. **Non considerare certificata la qualità.**
+- Non distrutti file precedenti, nessun JAR principale sostituito, nessuna nuova spesa introdotta.
+- Resta: verificare regressioni, crash/recovery, protezione costruzioni artificiali, velocità su i3, progetto paese oltre 2 milioni di blocchi.
+- Prossimo passo: test su copia del mondo, audit per eventuale merge, generazione realmente disk-based per città intere.
+
+
+## CP-2026-10-30-004 — 30 ottobre 2026 — anteprima JAR generazione a componenti
+
+- Main prima degli esperimenti: `7e7e5a3`; main non modificato in questa milestone.
+- Sviluppo isolato: PR #1 `feature/composite-large-builds-20261030`.
+- CI build completa sul commit `c2b859b8`: run **40995555653 SUCCESS**, compresi test mock, compile Fabric, test DesignContract e ComponentManifest e pubblicazione preview.
+- Release testabile verificata: `https://github.com/MATRIXNEO23/mine-builder/releases/tag/mine-builder-composite-preview`, JAR e checksum. Nessun JAR principale sostituito.
+- Correzioni: recupero dei diari singoli e multipli, file blueprint GZIP in streaming con lettura storica, validazione degli header GPT, gestione JSON malformato, nessun taglio silenzioso oltre limite, sistema a componenti.
+- Non classificare come `testato nel mondo`: serve prima l'esecuzione Minecraft e prova di sicurezza/restart su mondo nuovo.
+- Prossimo: test gioco su un mondo dedicato, correggere crash/lag/preflight, valutare merge solo con decisione distinta.
+
+## CP-2026-10-30-005 — 30 ottobre 2026 — consegna di fine sessione, build preview conservata
+
+- L'utente ha chiesto espressamente di salvare la continuità prima di dormire: questo checkpoint è il punto ufficiale di ripresa.
+- Repository: `MATRIXNEO23/mine-builder`. Ramo **attivo** `feature/composite-large-builds-20261030`, PR #1 DRAFT e NON fusa. HEAD verificato **prima** del checkpoint: `d219bbe1d6521f4a488bd9d95dd443ae3fa56a14`. Main resta `7e7e5a3aa4d8315de121e9d52a67d43ba0b9b510`.
+- **Ultima CI verificata:** run `40995790996` SUCCESS sul commit `d219bbe1d6521f4a488bd9d95dd443ae3fa56a14`, preceduto da `40995679462` SUCCESS e `40995555653` SUCCESS (pubblicazione JAR).
+- **Release conservata:** `https://github.com/MATRIXNEO23/mine-builder/releases/tag/mine-builder-composite-preview`, JAR Fabric 1.20.1 da 134942 byte e `SHA256SUMS.txt` (SHA256 `61a890ee96173518ebe16176195a882f87080268fceaf7a9a993b12f1739fe81`). La preview non sostituisce la Release di main; tag inizialmente creato su `c2b859b8`.
+- Implementazioni di codice precedenti al checkpoint: progetto globale a componenti, manif. immutabile 2..64 parti, limiti dettagli ±2000, controlli conflitto pre-journal, recupero journal singolo/composito, GZIP streaming per blueprint con compatibilità vecchi JSON, validazione contratti GPT e retry malformati, build CI in verde.
+- **NESSUN test in Minecraft reale documentato** per la preview. Inferenza GPT con quota inclusa non validata. Limite aggregato 2 milioni, performance, backup/rollback, protezione blocchi artificiali, giunzioni architettoniche e fedeltà 1:1 ancora non risolti.
+- Per la ripresa: prima leggere `continuity/HANDOFF.md` e `continuity/STATE.md` **sul ramo attivo**, verificare di nuovo l'HEAD e CI; poi test della preview **solo su mondo nuovo** e registrare risultati. Non eseguire merge né sovrascrivere mondi precedenti. Nessun costo aggiuntivo.
+- Questa operazione salva **solo documentazione di continuità**, senza toccare codice, JAR o mondi. SHA della presente operazione da verificare nella cronologia GitHub, non inventare un identificatore nel checkpoint.
+
+
+## CP-2026-10-30-006 — villa JSON / console fissa
+
+# Aggiornamento 30 ottobre 2026 — correzione villa e console affiancata
+
+Codice verificato: `0296872512e7e52af46d936f14c0680844c0e276`. CI `41031620396` SUCCESS: build Fabric, BlueprintFieldsTest (campi mancanti/null, frazioni, overflow, tipi errati), manifest, contratto e mock OAuth. JAR pubblicato da questa run: 138670 byte, SHA256 `7081e40bc3e102ceffb6a822915e2780ebffcf24e47f9014410b83addced4784`, release `mine-builder-composite-preview`; il tag storico resta su un commit precedente, gli asset sono aggiornati dalla CI.
+
+Test utente: villa a due piani con piscina fallita dopo circa 5m39s con getAsInt su campo mancante. La foto non identifica il campo né prova il commit installato. Corretto il contratto geometrico esplicito condiviso SINGLE/COMPONENTS; lettura numeri interi e stringhe con errori leggibili; retry SINGLE con risposta precedente ed errore specifico; tentativi salvati nel diario prima del parsing. Console sempre a sinistra, comandi a destra, ricerca come testo informativo, errori a capo corretti e prompt conservato tornando dai dettagli. Nessun test runtime Minecraft della nuova UI o della villa ancora eseguito; nessuna riduzione dei tempi dimostrata, nessuna fedeltà architettonica certificata.
+
+Richiesta utente: flusso semplice richiesta → modello analizza/progetta/produce blueprint → Minecraft esegue; console sempre visibile. L'utente contesta la scelta del ramo separato (non era sua richiesta). Non creare ulteriori rami né attribuirgli quella scelta. Il ramo preesistente è ancora il riferimento del JAR corretto; main non integrato in questa correzione.
+
+Prossimo: sostituire il vecchio JAR con quello nuovo e provare villa in mondo di test; verificare layout, generazione, martello, piscina, scale e ripresa. Limiti sicurezza/performance/backup precedenti restano. Non dichiarare risolti tutti i problemi del motore.
+
+---
+
+
+
+## CP-2026-10-30-007 — review e abilitazione azioni
+
+# Review e pulsanti contestuali — 30 ottobre 2026
+
+Codice `021d087e38dcf7397cf21cde2d763e4ba3c41f5c`, CI `41034204139` SUCCESS. Aggiunti controlli UI e handler Costruisci, validazione prima di esporre piani da generazione/libreria/diari, occupazione durante chat e recuperi storici, consegna esiti sul client thread. ActionGateTest e BlueprintFieldsTest superati insieme a build/manifest/contratto e mock OAuth. JAR aggiornato dalla CI nella release esistente. Review completa con priorità, fix e casi di collaudo: `docs/REVIEW_RUNTIME_2026-10-30.md`. Nessun test Minecraft della nuova revisione.
+
+Rischi aperti: backup e protezione mondo; controllo piscine su confini di sezioni; ordine di posa e proprietà di scale/slab/porte; performance e identità mondo. Disponibilità recuperi basata sui file presenti, integrità accertata durante recupero. Prossimo: verificare pulsanti durante generazione/errore/recupero/completamento e poi posa reale villa su mondo di test. Non confondere validazione tecnica con completezza architettonica.
+
+---
+

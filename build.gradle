@@ -12,3 +12,24 @@ dependencies {
 processResources { inputs.property 'version', project.version; filesMatching('fabric.mod.json') { expand version: project.version } }
 tasks.withType(JavaCompile).configureEach { it.options.release = 17 }
 java { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
+
+// Runtime-free contract checks for large-build manifests (Gradle test lacks JUnit here).
+tasks.register('verifyCompositeManifest', JavaExec) {
+  dependsOn tasks.named('testClasses')
+  classpath = sourceSets.test.runtimeClasspath
+  mainClass = 'it.minebuilder.ComponentManifestTest'
+}
+
+ tasks.register('verifyBlueprintFields', JavaExec) {
+  dependsOn tasks.named('testClasses')
+  classpath = sourceSets.test.runtimeClasspath
+  mainClass = 'it.minebuilder.BlueprintFieldsTest'
+ }
+ tasks.named('check') { dependsOn tasks.named('verifyBlueprintFields') }
+
+tasks.register('verifyActionGate', JavaExec) {
+  dependsOn tasks.named('testClasses')
+  classpath = sourceSets.test.runtimeClasspath
+  mainClass = 'it.minebuilder.ActionGateTest'
+}
+tasks.named('check') { dependsOn tasks.named('verifyActionGate') }

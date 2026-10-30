@@ -1,3 +1,5 @@
+> Nota successiva (30 ottobre 2026): questa pagina è una fotografia del gate datata 29 ottobre. Le sezioni che dicono «OAuth non implementato» sono superate dal codice Java presente in `src/main/java/it/minebuilder/auth/`; il login e l'inferenza reali con quota inclusa non sono però stati certificati da questa review. Non usare lo stato storico come stato corrente senza verificare l'HEAD.
+
 # Collegamento GPT — verifica tecnica 29 ottobre 2026
 
 ## Fatto verificato

@@ -1,39 +1,38 @@
-# Mine Builder — installazione e primo avvio (guida utente)
+# Mine Builder — installazione e collaudo
 
-> **Stato: non ancora installabile.** La repository contiene documentazione e un modulo preliminare per verificare il collegamento GPT, non una mod `.jar` pronta. Non eseguire installazioni aggiuntive finché non viene pubblicata una release verificata.
+## Quale build usare
 
-## Cosa hai già
-- Prism Launcher installato e Minecraft Java Edition 1.20.1 funzionante sul tuo PC.
-- Un account ChatGPT Plus (l'accesso di Mine Builder tramite il piano è ancora da collaudare realmente).
+La versione principale (`main`) e l'anteprima grandi edifici/paesi sono distinte. La nuova architettura per componenti è sperimentale nella [PR #1](https://github.com/MATRIXNEO23/mine-builder/pull/1).
 
-## Cosa servirà, quando sarà pronta una release
-1. Aprire **Prism Launcher**, scegliere **Aggiungi istanza** e creare un'istanza separata per **Minecraft 1.20.1** con **Fabric**, mantenendo intatta l'installazione attuale.
-2. In **Modifica istanza → Impostazioni → Java**, verificare che l'istanza usi **Java 17**. Scaricarlo solo se manca, dopo aver verificato il sistema operativo.
-3. In **Modifica istanza → Mods**, aggiungere **Fabric API** compatibile con Minecraft 1.20.1 e il futuro **MineBuilder.jar**. Le dipendenze effettive saranno indicate nella release; non installare WorldEdit se non viene richiesto.
-4. Creare un **mondo di prova** oppure fare un backup del proprio mondo prima di attivare la costruzione automatica.
-5. Avviare il gioco, posizionare il **Banco IA** (quando implementato), aprire l'interfaccia e seguire il login ufficiale a ChatGPT se richiesto. Non copiare mai password, token o chiavi nella chat o su GitHub.
-6. Eseguire il **test di connessione reale**: ottenere una risposta completata dal modello GPT disponibile nel proprio piano, senza API key fatturata e senza acquisto di crediti.
-7. Solo dopo il superamento del test: provare **«Costruisci una torre»**, mettere in pausa, chiudere e riaprire Minecraft, poi usare **«Riprendi»**. Verificare che i blocchi restino nel mondo offline.
+**Anteprima separata (solo dopo CI verde):** [Mine Builder — composite preview](https://github.com/MATRIXNEO23/mine-builder/releases/tag/mine-builder-composite-preview). Contiene il JAR Fabric 1.20.1 e un file `SHA256SUMS.txt`. La release potrebbe non esistere ancora se la compilazione/validazione non è terminata.
 
-## Programmi aggiuntivi sul PC
-- **Per giocare:** l'obiettivo è che bastino Prism Launcher, Java 17 e i file della mod/dipendenze. Non sarà necessario installare Git, Gradle o un editor di codice.
-- **Per il login GPT:** è ancora da stabilire se il componente di collegamento possa essere incorporato nella mod o debba essere distribuito come piccolo programma locale separato. Non presentare questa parte come già funzionante.
-- **Nessun server Minecraft a pagamento, nessuna API key a consumo.** Se il servizio non può operare con il piano già posseduto, il sistema deve fermarsi senza generare costi.
+**Versione principale:** [Elenco Releases](https://github.com/MATRIXNEO23/mine-builder/releases).
 
-## Stato delle attività
-- [x] Requisiti e architettura documentati.
-- [ ] Test autentico di accesso GPT con account Plus.
-- [ ] Collegamento locale sicuro e Banco IA Fabric.
-- [ ] Prima release `.jar` compilata e testata.
-- [ ] Test costruzione, salvataggio e ripresa.
+Una CI verde dimostra compilazione e controlli automatici. Non prova che l'IA abbia prodotto una casa corretta o un paese fedele, né che la posa sia sicura su mondi esistenti.
 
-**Importante:** non modificare i mondi esistenti né installare programmi non ancora verificati. Le istruzioni definitive potranno essere aggiornate dopo la prima build reale.
-## Download permanente e versioni
+## Installazione in sicurezza
 
-Le build temporanee di GitHub Actions **non sono l'archivio permanente**. Ogni versione pubblicata tramite tag Git `vX.Y.Z` usa il workflow `.github/workflows/release.yml`: dopo test e compilazione riusciti, carica il file `Mine-Builder-vX.Y.Z-Minecraft-1.20.1-Fabric.jar` nella pagina GitHub **Releases** e aggiunge `SHA256SUMS.txt` per verificare l'integrità.
+1. In **Prism Launcher** crea un'istanza di prova **Minecraft Java 1.20.1 + Fabric + Java 17**, separata da quella abituale.
+2. Aggiungi **Fabric API** per 1.20.1 e **un solo** JAR Mine Builder, tramite **Modifica istanza → Mod**. Non installare due versioni della mod insieme.
+3. Crea **un mondo nuovo dedicato ai test**; non usare il mondo principale o una copia senza un backup esterno verificato. Il motore attuale può sostituire alcuni tipi di terreno e non ha ancora un backup/rollback affidabile.
+4. Apri il Banco IA, collega ChatGPT attraverso il browser e verifica che una risposta GPT arrivi davvero. Non inserire in chat, repository o log chiavi/API token. Nessun acquisto di crediti o API a consumo è autorizzato: se il piano non consente l'inferenza, fermarsi.
+5. Testa prima una struttura piccola, poi un complesso a più edifici. GPT decide `GEOMETRY=SINGLE` per geometrie semplici oppure `GEOMETRY=COMPONENTS` per grandi strutture; il sistema salva un manifest e i componenti nel diario del mondo.
+6. Prima di costruire, verifica con **Dettagli e controlli** e **Console LIVE** il numero dei blocchi e l'eventuale presenza di errori. Se viene indicato progetto incompleto, quota esaurita, altezza invalida o limite di 2 milioni, non cercare di forzare la posa.
+7. Con il **martello Builder** scegli posizione e rotazione; avvia esclusivamente nel mondo di prova. Controlla facciate, porte, tetti, giunzioni, interni e zone circostanti.
+8. Per testare il recupero, interrompi prima la generazione o la costruzione nel mondo di prova, riavvia e usa **Recupera diario GPT** o **Riprendi costruzione**. Se compare un errore, conserva journal e log per la diagnosi; non cancellare manualmente file dal mondo.
 
-**Cartella stabile di download:** https://github.com/MATRIXNEO23/mine-builder/releases
+## Cosa è implementato e cosa no
 
-Le versioni precedenti restano consultabili nelle Releases finché non vengono cancellate da un amministratore del repository. La pubblicazione non è ancora stata eseguita né la compilazione confermata; non installare file non verificati.
+- Presente nel codice: Banco IA, OAuth locale con PKCE, richieste GPT in streaming, progetto architettonico, JSON geometrico, generazione per componenti (nell'anteprima), checkpoint, copia blueprint in formato compresso con lettura del formato storico.
+- Ancora da dimostrare nel gioco: inferenza con quota inclusa, ripresa dopo crash reale, prestazioni su hardware datato, fedeltà architettonica.
+- Non completato: gestione illimitata di interi paesi, backup/rollback del mondo, protezione perfetta di blocchi artificiali indistinguibili da terreno, costruzione interamente non bloccante. Limite attuale **2 milioni di posizioni** per progetto.
 
-Per installare: scaricare il JAR dalla Release desiderata, aprire Prism Launcher → Modifica istanza → Mod → Aggiungi mod, scegliere il JAR. Conservare una copia locale se si desidera una seconda copia di sicurezza. La Release non si crea automaticamente a ogni push: serve un tag di versione coerente con `gradle.properties`.
+**Nessun costo aggiuntivo:** niente API a consumo, server a pagamento o fallback con addebiti. Minecraft resta locale, e i progetti salvati possono essere consultati anche offline.
+
+## Diagnostica
+
+- Log console: `config/minebuilder/generation-console.log` nell'istanza Prism.
+- Diari generazione: `saves/<nome-mondo>/minebuilder/generation-journal/`.
+- Blueprint: `saves/<nome-mondo>/minebuilder/blueprints/` (nuovi file `.json.gz`; vecchi `.json` leggibili).
+- Workflow CI: [GitHub Actions](https://github.com/MATRIXNEO23/mine-builder/actions).
+- Architettura e limiti: [Review grandi edifici](LARGE_BUILDS_REVIEW_2026-10-30.md).
