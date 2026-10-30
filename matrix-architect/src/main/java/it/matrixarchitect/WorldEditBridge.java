@@ -32,11 +32,13 @@ final class WorldEditBridge {
     var format=ClipboardFormats.findByFile(file.toFile());if(format==null)throw new java.io.IOException("Formato non riconosciuto da WorldEdit");
     try(var input=Files.newInputStream(file);var reader=format.getReader(input)){
      Clipboard clip=reader.read();var d=clip.getDimensions();long volume=(long)d.getBlockX()*d.getBlockY()*d.getBlockZ();
-     if(volume<1||volume>2_000_000)throw new java.io.IOException("Ingombro oltre 2 milioni di posizioni; nessun ridimensionamento");
+     SchematicCapacity.validate(volume,Runtime.getRuntime().maxMemory(),Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory());
+     event("Letto: "+d+" | "+String.format(java.util.Locale.ROOT,"%,d",volume)+" posizioni (aria inclusa), scala originale. RAM Java disponibile: "+SchematicCapacity.availableMiB(Runtime.getRuntime().maxMemory(),Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())+" MiB");
      if(!clip.getEntities().isEmpty())throw new java.io.IOException("Schematic con entita: questa versione non le importa");
      return clip;
     }
-   }catch(Exception ex){throw new java.util.concurrent.CompletionException(ex);}
+   }catch(OutOfMemoryError ex){throw new java.util.concurrent.CompletionException(new java.io.IOException("RAM Java esaurita durante lettura WorldEdit. Aumenta la memoria dell’istanza Prism e riavvia; nessun blocco e stato piazzato."));}
+   catch(Exception ex){throw new java.util.concurrent.CompletionException(ex);}
   }).whenComplete((clip,error)->c.execute(()->{
    busy=false;
    if(c.getServer()!=server||c.world==null||!c.world.getRegistryKey().equals(dimension)){event("Mondo cambiato durante caricamento: file non attivato");return;}
@@ -48,7 +50,7 @@ final class WorldEditBridge {
  static void paste(MinecraftClient c,BlockPos target){
   if(!ready(c)||target==null)return;
   final var clip=clipboard;final int rotation=turns;final var server=c.getServer();final var id=c.player.getUuid();final var dim=loadedDimension;
-  // Freeze the exact target/rotation displayed when P was pressed.
+  // Freeze the exact target/rotation displayed when placement was requested.
   final BlockPos anchor=target.toImmutable();busy=true;event("Incolla WorldEdit a "+anchor.toShortString()+" | "+rotation*90+" gradi. Include aria e sovrascrive il terreno.");
   server.execute(()->{
    EditSession edit=null;LocalSession session=null;
@@ -57,6 +59,7 @@ final class WorldEditBridge {
     if(player==null||!player.getWorld().getRegistryKey().equals(dim))throw new IllegalStateException("Giocatore o dimensione cambiati");
     var actor=FabricAdapter.adaptPlayer(player);
     if(!actor.hasPermission("worldedit.clipboard.paste"))throw new IllegalStateException("WorldEdit richiede permesso di incolla: abilita i comandi nel mondo");
+    SchematicCapacity.validate((long)clip.getDimensions().getBlockX()*clip.getDimensions().getBlockY()*clip.getDimensions().getBlockZ(),Runtime.getRuntime().maxMemory(),Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory());
     var world=server.getWorld(dim);var bounds=ArchitectClient.bounds(clip,anchor,rotation);
     if(bounds.minY<world.getBottomY()||bounds.maxY>world.getTopY())throw new IllegalArgumentException("Anteprima fuori altezza mondo");
     // Avoid a half-paste caused by missing chunks: no world mutations until all are loaded.

@@ -35,3 +35,11 @@ tasks.register('verifyKeys', JavaExec) {
  mainClass = 'it.matrixarchitect.KeyChoiceTest'
 }
 tasks.named('check') { dependsOn tasks.named('verifyKeys') }
+
+tasks.register('verifyCapacity', JavaExec) {
+ dependsOn tasks.named('testClasses')
+ classpath = sourceSets.test.runtimeClasspath
+ mainClass = 'it.matrixarchitect.SchematicCapacityTest'
+ maxHeapSize = '1g'
+}
+tasks.named('check') { dependsOn tasks.named('verifyCapacity') }
