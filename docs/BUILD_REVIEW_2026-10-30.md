@@ -1,3 +1,11 @@
+## Review aggiuntiva — commit successivo a a982109f
+- Run 40990761082 sul commit a982109f: SUCCESS. Le due run intermedie 5f5cd7a2 e abb926eb: CANCELLED, non FAILED.
+- Rimosso parser PAGED obsoleto dal flusso di generazione nuovo.
+- Estratto GenerationJournal: scrittura atomica di master plan, richiesta, origine, modalità ricerca, specifica e geometria; mantiene i journal precedenti e usa cartella del mondo.
+- CI sul nuovo HEAD da verificare.
+- Ancora NON implementata generazione multi-componente affidabile di città intere, verifica planimetrie 1:1, test runtime Minecraft, budget salvataggi non bloccante. Non dichiarare completamento.
+
+
 # Mine Builder — build review 2026-10-30
 
 ## Baseline verificata
