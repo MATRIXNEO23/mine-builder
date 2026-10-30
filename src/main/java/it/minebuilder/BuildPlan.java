@@ -378,9 +378,11 @@ public final class BuildPlan {
             if (!explicit.add(pos) && !cells.get(pos).equals(state))
                 throw new IllegalArgumentException("Conflicting explicit blocks at " + pos.toShortString());
             cells.put(pos, state);
-            if (cells.size() > 20000)
-                throw new IllegalArgumentException("Blueprint exceeds 20000 blocks");
+            if (cells.size() > maxBlocks)
+                throw new IllegalArgumentException("Blueprint exceeds allowed block count");
         }
+        if (cells.size() > maxBlocks)
+            throw new IllegalArgumentException("Blueprint exceeds allowed block count");
         if (cells.isEmpty()) throw new IllegalArgumentException("Empty blueprint");
         return fromPlacements(cells.entrySet().stream()
             .map(e -> new Placement(e.getKey(), e.getValue())).toList());
