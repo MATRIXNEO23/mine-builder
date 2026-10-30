@@ -43,7 +43,12 @@ public final class ArchitectClient implements ClientModInitializer {
    while(down.wasPressed())height=Math.max(-512,height-1);
    while(left.wasPressed())move(-1,0);while(right.wasPressed())move(1,0);while(forward.wasPressed())move(0,-1);while(back.wasPressed())move(0,1);
    while(unlock.wasPressed()){locked=false;height=0;}
-   while(place.wasPressed())if(WorldEditBridge.ready(c)&&target!=null)WorldEditBridge.paste(c,target.up(height));
+   while(place.wasPressed())if(WorldEditBridge.ready(c)&&target!=null){
+    BlockPos anchor=target.up(height);
+    String error=WorldEditBridge.placementHeightError(WorldEditBridge.clipboard,anchor,WorldEditBridge.turns,c.world.getBottomY(),c.world.getTopY());
+    if(error!=null)WorldEditBridge.event("ERRORE posa: "+error);
+    else WorldEditBridge.paste(c,anchor);
+   }
    while(undo.wasPressed())WorldEditBridge.undo(c);
   });
   UseBlockCallback.EVENT.register((player,world,hand,hit)->{
@@ -69,8 +74,9 @@ public final class ArchitectClient implements ClientModInitializer {
    var c=MinecraftClient.getInstance();if(!holding(c)||!WorldEditBridge.ready(c)||target==null)return;
    var matrix=context.matrixStack();if(matrix==null||context.consumers()==null)return;
    Box box=bounds(WorldEditBridge.clipboard,target.up(height),WorldEditBridge.turns);var camera=context.camera().getPos();
+   boolean outsideHeight=box.minY<c.world.getBottomY()||box.maxY>c.world.getTopY();
    matrix.push();matrix.translate(-camera.x,-camera.y,-camera.z);
-   WorldRenderer.drawBox(matrix,context.consumers().getBuffer(RenderLayer.getLines()),box,0.2f,1f,0.5f,1f);matrix.pop();
+   WorldRenderer.drawBox(matrix,context.consumers().getBuffer(RenderLayer.getLines()),box,outsideHeight?1f:0.2f,outsideHeight?0.2f:1f,outsideHeight?0.2f:0.5f,1f);matrix.pop();
   });
  }
  private static void configureKeys(MinecraftClient c){
