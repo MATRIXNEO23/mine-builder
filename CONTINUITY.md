@@ -1,3 +1,6 @@
+## 2026-10-30 — Console generazione in tempo reale
+Commit c08043e: BancoIaScreen integra pulsante Console generazione e schermata live con fase, secondi trascorsi, blocchi/pagine/sezioni, cronologia eventi e registro persistente config/minebuilder/generation-console.log. Le fasi vengono rilevate al cambio di generatorStage nel render; non sono percentuali GPT inventate. Log scrive anche se la console non è aperta quando BancoIaScreen è visualizzato; eventi intermedi non renderizzati potrebbero non essere catturati. CI e test in gioco ancora da verificare; non dichiarare build pronta finché non verde.
+
 ## 2026-10-30 — Recovery da ultimo verde e nuova implementazione isolata
 Dopo CI rossa 95d04839, 55e02752 e 5ae20941, log: IntegratedServer non espone getAverageTickTime() né getTickTimes() con i mapping attuali. Ripristinato integralmente BuildExecutor.java da commit VERDE 766b77c5 in commit 9d5c397; quindi introdotto in commit 4a6c737 solo cooldownTicks (2 o 5 tick se l'ultimo batch supera budget 2ms/6ms), senza dipendenze da metodi server non verificati. Rimane il batch adattivo 4..32. Non è controllo MSPT globale, ma autoregolazione della posa; non promettere zero lag. Aspettare nuova CI prima di distribuire. Non cancellati diari né geometrie.
 
