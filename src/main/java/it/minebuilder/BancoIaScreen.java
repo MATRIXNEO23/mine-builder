@@ -580,23 +580,12 @@ public final class BancoIaScreen extends Screen {
                 });
                 String masterPlan = design.masterPlan();
                 String enriched = design.geometryInstruction();
-                // Persist each GPT page before requesting the next one.
-                Path journal = client.getServer().getSavePath(net.minecraft.util.WorldSavePath.ROOT)
-                    .resolve("minebuilder").resolve("generation-journal");
-                java.nio.file.Files.createDirectories(journal);
-                Path jobDir = journal.resolve(java.util.UUID.randomUUID().toString());
-                java.nio.file.Files.createDirectory(jobDir);
-                streamingJob = jobDir;
-                java.nio.file.Files.writeString(jobDir.resolve("master-plan.txt"), masterPlan);
-                java.nio.file.Files.writeString(jobDir.resolve("request.txt"), message);
-                java.nio.file.Files.writeString(jobDir.resolve("origin.txt"),
-                    origin.getX() + "," + origin.getY() + "," + origin.getZ());
-                java.nio.file.Files.writeString(jobDir.resolve("design.txt"),
-                    enriched.substring(0, Math.min(enriched.length(), 12000)));
-                // One complete compact geometric specification, expanded locally by Java.
-                // No model-generated pages or per-section material decisions.
+                GenerationJournal journal = GenerationJournal.create(
+                    client.getServer().getSavePath(net.minecraft.util.WorldSavePath.ROOT),
+                    design, origin);
+                streamingJob = journal.directory();
                 generatorStage = "Geometria completa: un unico progetto";
-                    logConsole("Fase avviata: Geometria completa: un unico progetto");
+                logConsole("Fase avviata: Geometria completa: un unico progetto");
                 GeometryGenerator.Result generated = GeometryGenerator.generate(
                     token, model, design, origin, stage -> {
                         generatorStage = stage;
@@ -604,14 +593,7 @@ public final class BancoIaScreen extends Screen {
                     });
                 String geometry = generated.json();
                 BuildPlan completeGeometry = generated.blueprint();
-                Path geometryTemp = java.nio.file.Files.createTempFile(jobDir, "geometry-", ".tmp");
-                try {
-                    java.nio.file.Files.writeString(geometryTemp, geometry);
-                    java.nio.file.Files.move(geometryTemp, jobDir.resolve("complete-geometry.json"),
-                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                } finally {
-                    java.nio.file.Files.deleteIfExists(geometryTemp);
-                }
+                journal.write("complete-geometry.json", geometry);
                 generatorPages = 1;
                 generatorBlocks = completeGeometry.placements().size();
                 generatorStage = "Progetto completo verificato: "
