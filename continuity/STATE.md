@@ -1,3 +1,8 @@
+## Aggiornamento migrazione v3 — seconda e terza fase
+CI del commit 90ef7276 confermata SUCCESS. Architettura estratta in ArchitecturalPlanner e GeometryGenerator; aggiunti test DesignContractTest in CI. Ricerca estesa a Wikipedia (contesto testuale) e Commons (immagini); recupero origine scritto atomicamente prima del progress marker; retry limitato su blueprint JSON non valido. Codice fino a commit 66c14e31, CI ultima revisione da verificare.
+
+NON DICHIARARE COMPLETATO: geometria multi-componenti per grandi città, ricerca universale e affidabilità di fonti/planimetrie, completa separazione dei journal dalla GUI, backup mondo/anteprima e validazione runtime Minecraft. Nessun test in gioco effettuato da questa istanza. Non installare automaticamente JAR sperimentale su mondi importanti. Prossima azione: CI verde, poi test in-game con copia di mondo, audit crash/resume e progettazione componenti grandi senza incoerenze.
+
 ## Stato aggiornato — 30 ottobre 2026 — migrazione v3 in corso
 La sezione storica seguente è un archivio del 29 ottobre, NON lo stato attuale. Il repository contiene ora GUI Banco IA, OAuth, inferenza GPT, parser geometrico ed esecutore; CI precedente verde ma non test in-game. Audit dell'HEAD precedente: 51aa194b8d7535e136ae1bef341078fead755f28.
 
