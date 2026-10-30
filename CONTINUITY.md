@@ -1,3 +1,6 @@
+## 2026-10-30 — Screenshot casa non riconoscibile: gate geometrico
+Foto utente: struttura stretta e alta simile a torre/statua, non una casa. Commit fb9c988: validateSimpleHouse su progetto compatto PRIMA del salvataggio e costruzione; rifiuta solidi <90, footprint X <8/Z <7, altezza <4 o >12. Non garantisce tetto/porte/interior o qualità, ma blocca la specifica anomalia mostrata. Progetti preesistenti non modificati; test in gioco e CI richiesti.
+
 ## 2026-10-30 — Test utente: console invisibile, casa lenta e forma errata
 Commit 41eb35c: pulsante Console LIVE/Registro sempre visibile sopra Chiudi in entrambe le schede; logging immediato delle fasi e degli errori (non solo durante render), validazione quota blueprint appena generato. Commit 141a1f6: richieste brevi per casa/casetta/house saltano chiamata GPT brief e chiamata GPT master-plan, usando contratto geometrico deterministico 11x9 e un'unica chiamata GPT per geometria; prompt esplicita interni vuoti, tetto, porte, finestre. Non cambia richieste architettoniche grandi. Qualità della casa da validare con screenshot/JSON, nessuna garanzia estetica. Serve JAR nuovo, non altra mod. CI da verificare.
 
