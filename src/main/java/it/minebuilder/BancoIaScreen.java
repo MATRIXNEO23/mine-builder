@@ -591,62 +591,11 @@ public final class BancoIaScreen extends Screen {
         CompletableFuture.supplyAsync(() -> {
             try {
                 if (!build) return ChatGptInference.ask(token, model, request);
-                generatorStage = "GPT: interpretazione e progetto";
-                logConsole("Fase avviata: interpretazione architettonica e decisione ricerca");
-                String firstPlan = ChatGptInference.ask(token, model,
-                    "You are the autonomous architect for a Minecraft 1.20.1 builder. "
-                    + "Interpret this user request: " + message + ". "
-                    + "FIRST LINE must be exactly RESEARCH=NONE, RESEARCH=INSPIRATION or RESEARCH=RECONSTRUCTION. "
-                    + "Choose NONE if references add no useful value; INSPIRATION if photographs or plans "
-                    + "would help create an ORIGINAL design; RECONSTRUCTION for a named real structure "
-                    + "requiring evidence and 1:1 fidelity. User does not have to provide sources. "
-                    + "Then provide ONE coherent technical architectural master plan, including type, "
-                    + "function, footprint, dimensions, shared coordinate axes, floors, roof, entrances, "
-                    + "interior circulation, materials and structural connections. "
-                    + "Do not output block coordinates or JSON. Never confuse estimates with verified measurements.");
-                DesignContract design = DesignContract.fromPlanningResponse(message, firstPlan);
+                DesignContract design = ArchitecturalPlanner.plan(token, model, message, stage -> {
+                    generatorStage = stage;
+                    logConsole(stage);
+                });
                 String masterPlan = design.masterPlan();
-                String researchContext = "";
-                if (design.researchMode() != DesignContract.ResearchMode.NONE) {
-                    generatorStage = "Ricerca autonoma: " + design.researchMode();
-                    logConsole("Ricerca fonti: " + design.researchMode());
-                    try {
-                        researchContext = ArchitectureResearch.planningReferences(message);
-                    } catch (Exception ex) {
-                        researchContext = "Reference search unavailable: " + ex.getClass().getSimpleName();
-                        logConsole(researchContext);
-                    }
-                    try {
-                        ArchitectureResearch.VisualReference visual = ArchitectureResearch.visualReference(message);
-                        if (visual != null) {
-                            generatorStage = "GPT: analisi immagine di riferimento";
-                            logConsole("Analisi visiva: " + visual.title());
-                            String analysis = ChatGptInference.askWithImage(token, model,
-                                "Analyze only what is VISIBLE in this architectural reference: "
-                                + visual.title() + ". Describe geometry, proportions, roof, openings and "
-                                + "materials. Distinguish observations from estimates. "
-                                + "For inspiration do not copy the building; for reconstruction do not "
-                                + "invent dimensions. Return concise architectural observations.",
-                                visual.image(), visual.mime());
-                            researchContext += "\nVisual analysis (" + visual.title() + "): "
-                                + analysis.substring(0, Math.min(4500, analysis.length()));
-                        }
-                    } catch (Exception ex) {
-                        logConsole("Analisi immagine non disponibile: " + ex.getClass().getSimpleName());
-                    }
-                    generatorStage = "GPT: consolidamento progetto e fonti";
-                    logConsole("Consolidamento del progetto dopo ricerca");
-                    masterPlan = ChatGptInference.ask(token, model,
-                        "Refine this architectural master plan using ONLY relevant research. "
-                        + "Preserve requested building type and coherent shared geometry. "
-                        + "For INSPIRATION create an ORIGINAL building; for RECONSTRUCTION prioritize "
-                        + "documented measurements and clearly mark estimates. "
-                        + "Do not claim sources were verified if only search titles were found. "
-                        + "Do not output block coordinates or JSON. Mode: " + design.researchMode()
-                        + "\nInitial plan: " + masterPlan
-                        + "\nResearch: " + researchContext.substring(0, Math.min(9500, researchContext.length())));
-                    design = new DesignContract(message, masterPlan, design.researchMode());
-                }
                 String enriched = request + "\n" + design.geometryInstruction();
                 // Persist each GPT page before requesting the next one.
                 Path journal = client.getServer().getSavePath(net.minecraft.util.WorldSavePath.ROOT)
