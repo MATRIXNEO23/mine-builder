@@ -8,7 +8,9 @@ public final class GeometrySmokeTest {
  public static void main(String[] args)throws Exception {
   net.minecraft.SharedConstants.createGameVersion();
   net.minecraft.Bootstrap.initialize();
-  BuildPlan p=BlueprintImport.load(Path.of("examples/test-pedestal.json"));
+  Path sample=Path.of("examples/test-pedestal.json");
+  if(!Files.isRegularFile(sample))sample=Path.of("../examples/test-pedestal.json");
+  BuildPlan p=BlueprintImport.load(sample);
   p.validateSections();
   if(p.placements().size()!=29)throw new AssertionError("Geometry count mismatch");
   var states=new java.util.HashMap<BlockPos,net.minecraft.block.BlockState>();
