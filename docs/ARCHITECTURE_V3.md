@@ -24,9 +24,14 @@ Il progetto globale determina tipologia, geometria, assi, livelli, materiali, ci
 - `GeometryGenerator`: geometria canonica e validazione tecnica fuori dalla schermata.
 - Test `DesignContractTest` introdotto e collegato alla CI; esito ancora da verificare.
 
+## Terza fase implementata
+- Ricerca ampliata con contesto enciclopedico gratuito Wikipedia, oltre a immagini Wikimedia Commons. La copertura non equivale a una ricerca web universale.
+- Scrittura atomica dell'origine del progetto prima del checkpoint di avanzamento, per evitare un checkpoint apparentemente riprendibile senza origine.
+- Un tentativo di rigenerazione compatta quando il JSON geometrico non supera i limiti tecnici; nessuna costruzione parziale viene pubblicata.
+
 ## NON ancora completato
 - Orchestrazione completa e journal ancora nella GUI: progettazione e generazione geometrica sono ora estratte in `ArchitecturalPlanner` e `GeometryGenerator`.
-- Ricerca web generale multi-fonte: oggi la scoperta automatica usa soltanto Wikimedia Commons, che non garantisce immagini o planimetrie pertinenti.
+- Ricerca web generale: Wikimedia Commons e Wikipedia non garantiscono planimetrie, misure né immagini pertinenti.
 - Blueprint di grandi città/stadi con geometria incrementale affidabile: il singolo JSON può eccedere il limite output GPT.
 - World identity forte per tutti i journal, preflight e salvataggi completamente non bloccanti, backup e anteprima esaustiva.
 - Test di qualità architettonica e prova in Minecraft; una CI verde attesta compilazione, non fedeltà.
