@@ -53,7 +53,9 @@ public final class GeometryGenerator {
                 blueprint = BuildPlan.parseComplete(geometry, origin);
                 BlueprintContract.validateAndPartition(blueprint);
                 break;
-            } catch (IllegalArgumentException ex) {
+            } catch (RuntimeException ex) {
+                // Invalid/truncated GPT JSON is a recoverable parse error. Do not
+                // claim completion or place blocks when retries are exhausted.
                 lastFailure = ex;
                 progress.accept("Blueprint non valido: nuovo tentativo compatto");
             }

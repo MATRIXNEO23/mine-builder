@@ -25,7 +25,21 @@ public final class ArchitecturalPlanner {
             + "function, footprint, dimensions, shared coordinate axes, floors, roof, entrances, "
             + "interior circulation, materials and structural connections. "
             + "Do not output block coordinates or JSON. Never confuse estimates with verified measurements.");
-        DesignContract design = DesignContract.fromPlanningResponse(request, firstPlan);
+        DesignContract design;
+        try {
+            design = DesignContract.fromPlanningResponse(request, firstPlan);
+        } catch (IllegalArgumentException invalid) {
+            progress.accept("Contratto GPT non valido: correzione intestazioni");
+            String repaired = ChatGptInference.ask(token, model,
+                "Rewrite this architectural plan as the REQUIRED machine-readable contract. "
+                + "Line 1: RESEARCH=NONE, RESEARCH=INSPIRATION or RESEARCH=RECONSTRUCTION. "
+                + "Line 2: GEOMETRY=SINGLE or GEOMETRY=COMPONENTS. "
+                + "Then include the full architectural plan. Choose COMPONENTS for large "
+                + "multi-part buildings and towns. Preserve the original requested structure "
+                + "and all details, axes, dimensions and research intent; do NOT output JSON. "
+                + "Original request: " + request + "\nRejected response:\n" + firstPlan);
+            design = DesignContract.fromPlanningResponse(request, repaired);
+        }
         if (design.researchMode() == DesignContract.ResearchMode.NONE) return design;
 
         progress.accept("Ricerca autonoma: " + design.researchMode());
