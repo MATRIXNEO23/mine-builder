@@ -324,6 +324,9 @@ public final class BancoIaScreen extends Screen {
         CompletableFuture.supplyAsync(() -> {
             try {
                 String design = java.nio.file.Files.readString(job.resolve("design.txt"));
+                Path masterFile = job.resolve("master-plan.txt");
+                if (java.nio.file.Files.isRegularFile(masterFile))
+                    design += " GLOBAL MASTER PLAN: " + java.nio.file.Files.readString(masterFile);
                 String request = java.nio.file.Files.readString(job.resolve("request.txt"));
                 var occupied = new java.util.LinkedHashMap<>(existing);
                 String previous = "";
