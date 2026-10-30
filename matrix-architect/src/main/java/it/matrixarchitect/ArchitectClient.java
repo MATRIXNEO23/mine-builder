@@ -28,7 +28,10 @@ public final class ArchitectClient implements ClientModInitializer {
   ClientTickEvents.END_CLIENT_TICK.register(c->{
    if(c.player==null||c.world==null)return;
    while(menu.wasPressed())if(c.currentScreen==null)c.setScreen(new ArchitectScreen());
-   if(c.currentScreen!=null||!holding(c))return;
+   if(c.currentScreen!=null||!holding(c)){
+    for(KeyBinding action:new KeyBinding[]{rotate,place,undo,up,down,left,right,forward,back,unlock})while(action.wasPressed()){}
+    return;
+   }
    if(WorldEditBridge.ready(c)&&!locked){
     HitResult hit=c.player.raycast(64,0,false);
     if(hit instanceof BlockHitResult b && hit.getType()==HitResult.Type.BLOCK)target=b.getBlockPos().offset(b.getSide());
