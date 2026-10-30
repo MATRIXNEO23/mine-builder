@@ -62,10 +62,23 @@ public final class BuildExecutor {
                 }
             }
             BlueprintLibrary.save(client, RESUME_NAME, plan);
-            saveProgress(client, key, 0);
+            // Publish the origin BEFORE the progress marker. A crash must never
+            // expose a resumable checkpoint without its matching origin.
             Path originFile = progressPath(client).resolveSibling("active-build.origin");
             BlockPos origin = plan.placements().get(0).pos();
-            Files.writeString(originFile, origin.getX() + "," + origin.getY() + "," + origin.getZ());
+            Path originTmp = Files.createTempFile(originFile.getParent(), "origin-", ".tmp");
+            try {
+                Files.writeString(originTmp, origin.getX() + "," + origin.getY() + "," + origin.getZ());
+                try {
+                    Files.move(originTmp, originFile, StandardCopyOption.ATOMIC_MOVE,
+                        StandardCopyOption.REPLACE_EXISTING);
+                } catch (AtomicMoveNotSupportedException ex) {
+                    Files.move(originTmp, originFile, StandardCopyOption.REPLACE_EXISTING);
+                }
+            } finally {
+                Files.deleteIfExists(originTmp);
+            }
+            saveProgress(client, key, 0);
         } catch (IOException e) {
             throw new IllegalStateException("Impossibile salvare il progetto prima di costruire", e);
         }
