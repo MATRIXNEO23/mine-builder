@@ -15,7 +15,7 @@ import java.util.concurrent.CompletableFuture;
 final class WorldEditBridge {
  static volatile Clipboard clipboard;
  static volatile boolean busy;
- static volatile String filename="Nessun schematic",status="Carica un .schem dal pannello K";
+ static volatile String filename="Nessun schematic",status="Carica un .schem dal pannello F10";
  static volatile int turns;
  static final java.util.List<String> log=new java.util.concurrent.CopyOnWriteArrayList<>();
  private static net.minecraft.server.MinecraftServer loadedServer;
@@ -70,8 +70,8 @@ final class WorldEditBridge {
     var holder=new ClipboardHolder(clip);holder.setTransform(new AffineTransform().rotateY(-rotation*90));
     edit=session.createEditSession(actor);
     try(EditSession active=edit){Operations.complete(holder.createPaste(active).to(BlockVector3.at(anchor.getX(),anchor.getY(),anchor.getZ())).ignoreAirBlocks(false).copyEntities(false).copyBiomes(false).build());}
-    event("WorldEdit ha terminato la posa: "+edit.size()+" modifiche. U annulla l'ultima operazione WorldEdit.");
-   }catch(Throwable error){event("ERRORE posa: "+error.getMessage()+". Eventuali modifiche parziali restano nella cronologia WorldEdit: usa U.");}
+    event("WorldEdit ha terminato la posa: "+edit.size()+" modifiche. Il tasto di annullamento annulla l'ultima operazione WorldEdit.");
+   }catch(Throwable error){event("ERRORE posa: "+error.getMessage()+". Eventuali modifiche parziali restano nella cronologia WorldEdit: usa il comando Annulla.");}
    finally{
     try{if(session!=null&&edit!=null)session.remember(edit);}finally{busy=false;}
    }

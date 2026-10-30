@@ -18,14 +18,16 @@ public final class ArchitectClient implements ClientModInitializer {
  static BlockPos target;
  static boolean locked;
  static int height;
+ private static boolean keysChecked;
  static KeyBinding menu,rotate,place,undo,up,down,left,right,forward,back,unlock;
  static boolean holding(MinecraftClient c){return c.player!=null&&c.player.getMainHandStack().isOf(MatrixArchitect.WAND);}
  static void resetTarget(){target=null;locked=false;height=0;}
  static KeyBinding key(String id,int code){return KeyBindingHelper.registerKeyBinding(new KeyBinding("key.matrixarchitect."+id,InputUtil.Type.KEYSYM,code,"category.matrixarchitect"));}
  public void onInitializeClient(){
-  menu=key("menu",GLFW.GLFW_KEY_K);rotate=key("rotate",GLFW.GLFW_KEY_R);place=key("place",GLFW.GLFW_KEY_P);undo=key("undo",GLFW.GLFW_KEY_U);
-  up=key("up",GLFW.GLFW_KEY_PAGE_UP);down=key("down",GLFW.GLFW_KEY_PAGE_DOWN);left=key("left",GLFW.GLFW_KEY_LEFT);right=key("right",GLFW.GLFW_KEY_RIGHT);forward=key("forward",GLFW.GLFW_KEY_UP);back=key("back",GLFW.GLFW_KEY_DOWN);unlock=key("unlock",GLFW.GLFW_KEY_L);
+  menu=key("menu",GLFW.GLFW_KEY_F10);rotate=key("rotate",GLFW.GLFW_KEY_F7);place=key("place",GLFW.GLFW_KEY_F6);undo=key("undo",GLFW.GLFW_KEY_F9);
+  up=key("up",GLFW.GLFW_KEY_PAGE_UP);down=key("down",GLFW.GLFW_KEY_PAGE_DOWN);left=key("left",GLFW.GLFW_KEY_LEFT);right=key("right",GLFW.GLFW_KEY_RIGHT);forward=key("forward",GLFW.GLFW_KEY_UP);back=key("back",GLFW.GLFW_KEY_DOWN);unlock=key("unlock",GLFW.GLFW_KEY_F12);
   ClientTickEvents.END_CLIENT_TICK.register(c->{
+   if(!keysChecked && c.options!=null){keysChecked=true;configureKeys(c);}
    if(c.player==null||c.world==null)return;
    while(menu.wasPressed())if(c.currentScreen==null)c.setScreen(new ArchitectScreen());
    if(c.currentScreen!=null||!holding(c)){
@@ -60,7 +62,7 @@ public final class ArchitectClient implements ClientModInitializer {
    draw.drawTextWithShadow(c.textRenderer,"MATRIX Architect | "+WorldEditBridge.filename,8,8,0xFFFFFF);
    String position=target==null?"Punta un blocco entro 64 m":target.up(height).toShortString();
    draw.drawTextWithShadow(c.textRenderer,position+" | "+WorldEditBridge.turns*90+" gradi | "+(locked?"Punto bloccato":"Segue lo sguardo"),8,21,0x88FFBB);
-   draw.drawTextWithShadow(c.textRenderer,"K pannello | clic blocca | R ruota | frecce sposta | PgUp/PgDn altezza | L sblocca | P POSIZIONA | U undo",8,34,0xDDDDDD);
+   draw.drawTextWithShadow(c.textRenderer,menu.getBoundKeyLocalizedText().getString()+" pannello | clic blocca | "+rotate.getBoundKeyLocalizedText().getString()+" ruota | "+place.getBoundKeyLocalizedText().getString()+" POSIZIONA | "+undo.getBoundKeyLocalizedText().getString()+" undo | "+unlock.getBoundKeyLocalizedText().getString()+" sblocca",8,34,0xDDDDDD);
    draw.drawTextWithShadow(c.textRenderer,c.textRenderer.trimToWidth(WorldEditBridge.status,draw.getScaledWindowWidth()-16),8,47,0xFFFF88);
   });
   WorldRenderEvents.AFTER_ENTITIES.register(context->{
@@ -70,6 +72,30 @@ public final class ArchitectClient implements ClientModInitializer {
    matrix.push();matrix.translate(-camera.x,-camera.y,-camera.z);
    WorldRenderer.drawBox(matrix,context.consumers().getBuffer(RenderLayer.getLines()),box,0.2f,1f,0.5f,1f);matrix.pop();
   });
+ }
+ private static void configureKeys(MinecraftClient c){
+  KeyBinding[] actions={menu,rotate,place,undo,unlock};
+  int[] preferred={GLFW.GLFW_KEY_F10,GLFW.GLFW_KEY_F7,GLFW.GLFW_KEY_F6,GLFW.GLFW_KEY_F9,GLFW.GLFW_KEY_F12};
+  int[] legacy={GLFW.GLFW_KEY_K,GLFW.GLFW_KEY_R,GLFW.GLFW_KEY_P,GLFW.GLFW_KEY_U,GLFW.GLFW_KEY_L};
+  int[] fallback={GLFW.GLFW_KEY_F6,GLFW.GLFW_KEY_F7,GLFW.GLFW_KEY_F9,GLFW.GLFW_KEY_F10,GLFW.GLFW_KEY_F12,GLFW.GLFW_KEY_KP_0,GLFW.GLFW_KEY_KP_1,GLFW.GLFW_KEY_KP_2,GLFW.GLFW_KEY_KP_3,GLFW.GLFW_KEY_KP_4,GLFW.GLFW_KEY_KP_5,GLFW.GLFW_KEY_KP_6,GLFW.GLFW_KEY_KP_7,GLFW.GLFW_KEY_KP_8,GLFW.GLFW_KEY_KP_9};
+  for(int i=0;i<actions.length;i++){
+   KeyBinding action=actions[i];var current=KeyBindingHelper.getBoundKeyOf(action);
+   if(current.getCode()==legacy[i] || current.getCode()==preferred[i]){
+    int chosen=KeyChoice.choose(preferred[i],fallback,code->{
+     var candidate=InputUtil.fromKeyCode(code,0);
+     for(KeyBinding other:c.options.allKeys)if(other!=action&&KeyBindingHelper.getBoundKeyOf(other).equals(candidate))return true;
+     return false;
+    });
+    action.setBoundKey(chosen<0?InputUtil.UNKNOWN_KEY:InputUtil.fromKeyCode(chosen,0));
+   }else if(!current.equals(InputUtil.UNKNOWN_KEY)){
+    for(KeyBinding other:c.options.allKeys)if(other!=action&&KeyBindingHelper.getBoundKeyOf(other).equals(current)){
+     action.setBoundKey(InputUtil.UNKNOWN_KEY);
+     WorldEditBridge.event("Conflitto per "+action.getTranslationKey()+": comando addon disattivato; rimappalo nelle opzioni.");
+     break;
+    }
+   }
+  }
+  KeyBinding.updateKeysByCode();c.options.write();
  }
  static void move(int x,int z){if(target!=null&&!WorldEditBridge.busy){target=target.add(x,0,z);locked=true;}}
  static Box bounds(Clipboard clip,BlockPos anchor,int turns){

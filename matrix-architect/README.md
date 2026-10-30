@@ -4,12 +4,12 @@ Minecraft Java 1.20.1, Fabric, Java 17. Richiede Fabric API e **WorldEdit 7.2.15
 
 ## Installazione e uso senza comandi
 1. Mettere WorldEdit, Fabric API e `MATRIX-Architect-v0.1.0-Minecraft-1.20.1-Fabric.jar` nella cartella mods dell'istanza Prism. Riavviare dopo installazione.
-2. Entrare in un mondo singleplayer di prova con comandi abilitati. Premere **K** per aprire il pannello: Carica schematic apre il browser file dentro Minecraft: cartella personale, Download, dischi/unita e cartella superiore. Aprire le cartelle, selezionare il .schem e premere Apri schematic selezionato. In alternativa trascinare un file. Non usa piu finestre AWT del sistema e non richiede di scrivere percorsi. Il pannello include console e copia registro.
+2. Entrare in un mondo singleplayer di prova con comandi abilitati. Premere **F10** per aprire il pannello: Carica schematic apre il browser file dentro Minecraft: cartella personale, Download, dischi/unita e cartella superiore. Aprire le cartelle, selezionare il .schem e premere Apri schematic selezionato. In alternativa trascinare un file. Non usa piu finestre AWT del sistema e non richiede di scrivere percorsi. Il pannello include console e copia registro.
 3. Prendere la **Bacchetta MATRIX Architect** dall'inventario creativo (Strumenti) oppure dal pulsante Prendi bacchetta in Creativa. Tenerla nella mano principale.
 4. Chiudere il pannello: camminare/volare normalmente e puntare un blocco entro 64 m. Una cornice verde mostra l'ingombro del file con la sua origine effettiva.
-5. Clic destro su un blocco blocca il punto. **R** ruota 90 gradi; **frecce** spostano X/Z di un blocco; **Page Up/Page Down** regolano l'altezza; **L** riprende il puntamento e azzera l'offset verticale.
-6. **P** conferma la posa con WorldEdit. Puntare o fare clic NON incolla. Include i blocchi aria e sovrascrive il terreno secondo lo schematic. Posizione e rotazione vengono congelate alla pressione di P.
-7. **U** annulla l'ultima operazione della cronologia WorldEdit della sessione: può essere anche un'operazione fatta con WorldEdit fuori dall'addon. **K** oppure Maiusc+clic destro riapre il pannello. Tutti i tasti sono rimappabili in Opzioni → Comandi → MATRIX Architect.
+5. Clic destro su un blocco blocca il punto. **F7** ruota 90 gradi; **frecce** spostano X/Z di un blocco; **Page Up/Page Down** regolano l'altezza; **F12** riprende il puntamento e azzera l'offset verticale.
+6. **F6** conferma la posa con WorldEdit. Puntare o fare clic NON incolla. Include i blocchi aria e sovrascrive il terreno secondo lo schematic. Posizione e rotazione vengono congelate alla pressione di P.
+7. **F9** annulla l'ultima operazione della cronologia WorldEdit della sessione: può essere anche un'operazione fatta con WorldEdit fuori dall'addon. **F10** oppure Maiusc+clic destro riapre il pannello. Tutti i tasti sono rimappabili in Opzioni → Comandi → MATRIX Architect.
 
 ## Confini e limiti reali
 - Anteprima: **ingombro**, non rendering di tutti i blocchi. Gli spazi vuoti dipendono dal contenuto del file; un file incompleto non viene ricostruito automaticamente.
@@ -22,3 +22,5 @@ Minecraft Java 1.20.1, Fabric, Java 17. Richiede Fabric API e **WorldEdit 7.2.15
 
 ## Distribuzione
 Workflow autonomo `.github/workflows/matrix-architect.yml`, release `matrix-architect-latest` e JAR/checksum nella cartella `downloads` del repository. Le altre due mod (Mine Builder e Blueprint Builder) e i loro JAR restano distinti. Sorgenti addon in questa cartella; licenza GPL-3.0-or-later, dipendenza WorldEdit distribuita separatamente da EngineHub.
+
+I vecchi tasti K/R/P/U/L vengono migrati al primo tick, incluse le assegnazioni salvate. I nuovi predefiniti sono F10/F7/F6/F9/F12. Se un tasto e gia assegnato a un altro comando, l'addon cerca un'alternativa libera; se non ne trova lascia il comando non assegnato. Le personalizzazioni senza conflitti restano invariate. La guida a schermo mostra i tasti effettivamente assegnati. Il limite di ingombro da 2 milioni non viene modificato da questa correzione.
