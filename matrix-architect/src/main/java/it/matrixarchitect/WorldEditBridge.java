@@ -47,13 +47,25 @@ final class WorldEditBridge {
    ArchitectClient.resetTarget();event("Pronto: "+filename+" | ingombro "+clip.getDimensions()+". Esci dal pannello e impugna la bacchetta.");
   }));
  }
+ /** Checks the full clipboard including air before any edit session is created.
+  * topExclusive follows Minecraft world.getTopY(). */
+ static String placementHeightError(Clipboard clip,BlockPos anchor,int rotation,int bottomY,int topExclusive){
+  var b=ArchitectClient.bounds(clip,anchor,rotation);
+  if(b.minY>=bottomY && b.maxY<=topExclusive)return null;
+  int relativeMin=(int)Math.round(b.minY-anchor.getY());
+  int relativeMax=(int)Math.round(b.maxY-1-anchor.getY());
+  return "Fuori altezza: struttura Y "+(int)b.minY+".."+((int)b.maxY-1)+
+   "; mondo Y "+bottomY+".."+(topExclusive-1)+
+   "; imposta il punto di posa a Y "+(bottomY-relativeMin)+".."+(topExclusive-1-relativeMax)+
+   ". Nessun blocco modificato da questo tentativo.";
+ }
  static void paste(MinecraftClient c,BlockPos target){
   if(!ready(c)||target==null)return;
   final var clip=clipboard;final int rotation=turns;final var server=c.getServer();final var id=c.player.getUuid();final var dim=loadedDimension;
   // Freeze the exact target/rotation displayed when placement was requested.
   final BlockPos anchor=target.toImmutable();busy=true;event("Incolla WorldEdit a "+anchor.toShortString()+" | "+rotation*90+" gradi. Include aria e sovrascrive il terreno.");
   server.execute(()->{
-   EditSession edit=null;LocalSession session=null;
+   EditSession edit=null;LocalSession session=null;boolean pasteStarted=false;
    try{
     var player=server.getPlayerManager().getPlayer(id);
     if(player==null||!player.getWorld().getRegistryKey().equals(dim))throw new IllegalStateException("Giocatore o dimensione cambiati");
@@ -61,7 +73,8 @@ final class WorldEditBridge {
     if(!actor.hasPermission("worldedit.clipboard.paste"))throw new IllegalStateException("WorldEdit richiede permesso di incolla: abilita i comandi nel mondo");
     SchematicCapacity.validate((long)clip.getDimensions().getBlockX()*clip.getDimensions().getBlockY()*clip.getDimensions().getBlockZ(),Runtime.getRuntime().maxMemory(),Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory());
     var world=server.getWorld(dim);var bounds=ArchitectClient.bounds(clip,anchor,rotation);
-    if(bounds.minY<world.getBottomY()||bounds.maxY>world.getTopY())throw new IllegalArgumentException("Anteprima fuori altezza mondo");
+    String heightError=placementHeightError(clip,anchor,rotation,world.getBottomY(),world.getTopY());
+    if(heightError!=null)throw new IllegalArgumentException(heightError);
     // Avoid a half-paste caused by missing chunks: no world mutations until all are loaded.
     for(int x=(int)Math.floor(bounds.minX/16);x<=Math.floor((bounds.maxX-1)/16);x++)
      for(int z=(int)Math.floor(bounds.minZ/16);z<=Math.floor((bounds.maxZ-1)/16);z++){
@@ -72,9 +85,9 @@ final class WorldEditBridge {
     session=WorldEdit.getInstance().getSessionManager().get(actor);
     var holder=new ClipboardHolder(clip);holder.setTransform(new AffineTransform().rotateY(-rotation*90));
     edit=session.createEditSession(actor);
-    try(EditSession active=edit){Operations.complete(holder.createPaste(active).to(BlockVector3.at(anchor.getX(),anchor.getY(),anchor.getZ())).ignoreAirBlocks(false).copyEntities(false).copyBiomes(false).build());}
+    try(EditSession active=edit){pasteStarted=true;Operations.complete(holder.createPaste(active).to(BlockVector3.at(anchor.getX(),anchor.getY(),anchor.getZ())).ignoreAirBlocks(false).copyEntities(false).copyBiomes(false).build());}
     event("WorldEdit ha terminato la posa: "+edit.size()+" modifiche. Il tasto di annullamento annulla l'ultima operazione WorldEdit.");
-   }catch(Throwable error){event("ERRORE posa: "+error.getMessage()+". Eventuali modifiche parziali restano nella cronologia WorldEdit: usa il comando Annulla.");}
+   }catch(Throwable error){event("ERRORE posa: "+error.getMessage()+(pasteStarted?". Eventuali modifiche parziali possono restare nella cronologia WorldEdit: usa Annulla.":". Nessun blocco e stato modificato da questo tentativo."));}
    finally{
     try{if(session!=null&&edit!=null)session.remember(edit);}finally{busy=false;}
    }
