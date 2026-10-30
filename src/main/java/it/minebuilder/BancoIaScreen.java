@@ -69,8 +69,6 @@ public final class BancoIaScreen extends Screen {
     private String selectedBlueprint;
     private int blueprintIndex;
     private static String autoRecoveredWorld;
-    private static volatile Path streamingJob;
-    private static volatile boolean streamingConfirmed;
     private boolean journalRecoveryRunning;
 
     private record GenerationOutcome(String reply, BuildPlan plan) {}
@@ -523,6 +521,10 @@ public final class BancoIaScreen extends Screen {
     public static boolean hasPlacementPlan() { return placementPlan != null; }
 
     private void sendMessage() {
+        if (generatorRunning || journalRecoveryRunning) {
+            status = Text.literal("Una generazione o un recupero è già in corso.");
+            return;
+        }
         String token = accessToken;
         String model = selectedModel;
         if (token == null || model == null) {
@@ -633,7 +635,6 @@ public final class BancoIaScreen extends Screen {
                 GenerationJournal journal = GenerationJournal.create(
                     client.getServer().getSavePath(net.minecraft.util.WorldSavePath.ROOT),
                     design, origin);
-                streamingJob = journal.directory();
                 generatorStage = "Geometria completa: un unico progetto";
                 logConsole("Fase avviata: Geometria completa: un unico progetto");
                 GeometryGenerator.Result generated = GeometryGenerator.generate(
@@ -644,7 +645,10 @@ public final class BancoIaScreen extends Screen {
                 String geometry = generated.json();
                 BuildPlan completeGeometry = generated.blueprint();
                 if (geometry != null) journal.write("complete-geometry.json", geometry);
-                generatorPages = 1;
+                generatorPages = geometry == null
+                    ? ComponentManifest.parse(java.nio.file.Files.readString(
+                        journal.directory().resolve("component-manifest.json"))).components().size()
+                    : 1;
                 generatorBlocks = completeGeometry.placements().size();
                 generatorStage = "Progetto completo verificato: "
                     + completeGeometry.sections().size() + " sezioni";
@@ -664,21 +668,6 @@ public final class BancoIaScreen extends Screen {
                         // serializing/parsing up to 2 million blocks on the render thread.
                         pendingPlan = outcome.plan();
                         if (pendingPlan == null) throw new IllegalStateException("Blueprint assente");
-                        if (streamingConfirmed) {
-                            if (streamingJob != null) {
-                                try {
-                                    String savedName = "gpt-" + streamingJob.getFileName().toString();
-                                    BlueprintLibrary.save(client, savedName, pendingPlan);
-                                    selectedBlueprint = savedName;
-                                } catch (Exception e) {
-                                    status = Text.literal("Costruzione attiva; salvataggio: " + e.getMessage());
-                                    return;
-                                }
-                            }
-                            lastPlan = pendingPlan;
-                            status = Text.literal("Progetto salvato; costruzione progressiva attiva.");
-                            return;
-                        }
                         BlueprintContract.validateAndPartition(pendingPlan);
                         BuildExecutor.validateHeight(client, pendingPlan);
                         logConsole("Blueprint validato: " + pendingPlan.placements().size() + " blocchi, " + pendingPlan.sections().size() + " sezioni");
@@ -710,7 +699,7 @@ public final class BancoIaScreen extends Screen {
         context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 12, 0xFFFFFF);
         String buildError = BuildExecutor.lastErrorFor(client);
         if (generatorRunning || generatorPages > 0) {
-            String activity = "Generatore: " + generatorStage + " | pagine " + generatorPages
+            String activity = "Generatore: " + generatorStage + " | componenti/parti " + generatorPages
                 + " | blocchi " + generatorBlocks;
             context.drawCenteredTextWithShadow(textRenderer,
                 textRenderer.trimToWidth(activity, Math.max(100, width - 24)),
@@ -770,7 +759,7 @@ public final class BancoIaScreen extends Screen {
             String current = "Fase: " + generatorStage + (generatorRunning ? " | attiva " + elapsed + "s" : " | inattiva");
             context.drawTextWithShadow(textRenderer, textRenderer.trimToWidth(current, width - 24), 12, 32, 0xAADDFF);
             context.drawTextWithShadow(textRenderer,
-                "Blocchi: " + generatorBlocks + " | Pagine: " + generatorPages
+                "Blocchi: " + generatorBlocks + " | Componenti/parti: " + generatorPages
                     + " | Sezioni: " + BuildExecutor.sectionProgress(), 12, 47, 0xCCCCCC);
             context.drawTextWithShadow(textRenderer, "Registro: config/minebuilder/generation-console.log", 12, 62, 0xAAAAAA);
             int count = consoleEvents.size();
