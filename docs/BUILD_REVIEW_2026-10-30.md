@@ -1,3 +1,9 @@
+## Verifica finale incrementale — dopo commit 0a2a92e3
+- CI run 40991245373 sul commit 0a2a92e3: SUCCESS.
+- Corretto bug UI: `BuildExecutor.cancel()` azzerava `ownerServer` e `lastErrorFor()` nascondeva immediatamente la causa del blocco (area occupata, chunk non pronto, checkpoint fallito). Ora conserva l'identità server per mostrare il messaggio; `start()` resetta l'errore.
+- Rimangono limiti reali: città/stadi grandi, fonti planimetriche affidabili, test in gioco, garanzia zero costi sull'endpoint API. Nessuna certificazione di completamento.
+- La CI della correzione deve essere verificata.
+
 ## Review aggiuntiva — commit successivo a a982109f
 - Run 40990761082 sul commit a982109f: SUCCESS. Le due run intermedie 5f5cd7a2 e abb926eb: CANCELLED, non FAILED.
 - Rimosso parser PAGED obsoleto dal flusso di generazione nuovo.
