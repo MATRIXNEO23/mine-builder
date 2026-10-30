@@ -312,9 +312,13 @@ public final class BancoIaScreen extends Screen {
                 if (xyz.length != 3) continue;
                 BlockPos origin = new BlockPos(Integer.parseInt(xyz[0]),
                     Integer.parseInt(xyz[1]), Integer.parseInt(xyz[2]));
-                // New immutable composite journal takes precedence over legacy paged recovery.
+                // New journal formats take precedence over historical GPT pages.
                 if (java.nio.file.Files.isRegularFile(job.resolve("component-manifest.json"))) {
                     resumeCompositeJournal(job, origin);
+                    return;
+                }
+                if (java.nio.file.Files.isRegularFile(job.resolve("complete-geometry.json"))) {
+                    resumeSingleJournal(job, origin);
                     return;
                 }
                 java.util.List<Path> files;
@@ -357,6 +361,48 @@ public final class BancoIaScreen extends Screen {
             status = Text.literal("Recupero diario: " + e.getMessage());
         }
     }
+    /** The single-JSON architecture introduced before composite builds must also recover. */
+    private void resumeSingleJournal(Path job, BlockPos origin) {
+        if (generatorRunning || journalRecoveryRunning) {
+            status = Text.literal("Generazione o recupero in corso.");
+            return;
+        }
+        generatorRunning = true;
+        journalRecoveryRunning = true;
+        generatorStage = "Recupero progetto geometrico completo";
+        logConsole("Recupero progetto completo " + job.getFileName());
+        CompletableFuture.supplyAsync(() -> {
+            try {
+                String json = java.nio.file.Files.readString(job.resolve("complete-geometry.json"));
+                BuildPlan plan = BuildPlan.parseComplete(json, origin);
+                BlueprintContract.validateAndPartition(plan);
+                return plan;
+            } catch (Exception ex) {
+                throw new java.util.concurrent.CompletionException(ex);
+            }
+        }).whenComplete((plan, error) -> {
+            if (client != null) client.execute(() -> {
+                generatorRunning = false;
+                journalRecoveryRunning = false;
+                if (error != null) {
+                    Throwable failure = error.getCause() == null ? error : error.getCause();
+                    status = Text.literal("Recupero JSON: " + failure.getMessage());
+                    logConsole("ERRORE recupero JSON: " + failure.getMessage());
+                } else {
+                    try {
+                        BuildExecutor.validateHeight(client, plan);
+                        pendingPlan = plan;
+                        lastPlan = plan;
+                        status = Text.literal("Progetto completo recuperato: premi Costruisci.");
+                        logConsole("Progetto JSON recuperato: " + plan.placements().size() + " blocchi");
+                    } catch (Exception ex) {
+                        status = Text.literal("Recupero JSON fuori altezza: " + ex.getMessage());
+                    }
+                }
+            });
+        });
+    }
+
     private void resumeCompositeJournal(Path job, BlockPos origin) {
         if (journalRecoveryRunning || generatorRunning) {
             status = Text.literal("Recupero o generazione già in corso.");
