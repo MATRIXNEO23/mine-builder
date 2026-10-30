@@ -520,7 +520,22 @@ public final class BancoIaScreen extends Screen {
         if (build && (client == null || client.player == null || !client.isInSingleplayer())) {
             status = Text.literal("Solo mondi singleplayer."); return;
         }
-        BlockPos origin = build ? client.player.getBlockPos().add(4, 0, 4) : null;
+        // The blueprint parser allows relative Y down to -32. On superflat worlds
+        // the player's feet can be at Y=-60: anchoring there would place blocks
+        // below the Minecraft build limit (-64). Reserve the full negative range.
+        BlockPos origin = null;
+        if (build) {
+            BlockPos playerPos = client.player.getBlockPos().add(4, 0, 4);
+            int minOriginY = client.world.getBottomY() + 32;
+            int maxOriginY = client.world.getTopY() - 129;
+            if (minOriginY > maxOriginY) {
+                status = Text.literal("Altezza mondo insufficiente per il progetto.");
+                return;
+            }
+            origin = new BlockPos(playerPos.getX(),
+                Math.max(minOriginY, Math.min(playerPos.getY(), maxOriginY)),
+                playerPos.getZ());
+        }
         pendingPlan = null;
         final boolean useReferences = !originalDesign;
         String request = build
