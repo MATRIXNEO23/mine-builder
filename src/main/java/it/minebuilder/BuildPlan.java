@@ -274,17 +274,26 @@ public final class BuildPlan {
 
     /** Universal compact geometry format: blocks and cuboids, independent of object type. */
     public static BuildPlan parse(String json, BlockPos origin) {
+        return parseGeometry(json, origin, 20000);
+    }
+
+    /** Expand a complete compact architectural design once, before sectioning. */
+    public static BuildPlan parseComplete(String json, BlockPos origin) {
+        return parseGeometry(json, origin, 2_000_000);
+    }
+
+    private static BuildPlan parseGeometry(String json, BlockPos origin, int maxBlocks) {
         JsonObject root = JsonParser.parseString(json).getAsJsonObject();
         Map<BlockPos, BlockState> cells = new LinkedHashMap<>();
         JsonArray blocks = root.has("blocks") ? root.getAsJsonArray("blocks") : new JsonArray();
         JsonArray cuboids = root.has("cuboids") ? root.getAsJsonArray("cuboids") : new JsonArray();
-        if (blocks.size() > 20000 || cuboids.size() > 1024)
+        if (blocks.size() > maxBlocks || cuboids.size() > 4096)
             throw new IllegalArgumentException("Blueprint input too large");
         for (JsonElement element : cuboids) {
             JsonObject c = element.getAsJsonObject();
             int x = c.get("x").getAsInt(), y = c.get("y").getAsInt(), z = c.get("z").getAsInt();
             int w = c.get("w").getAsInt(), h = c.get("h").getAsInt(), d = c.get("d").getAsInt();
-            if (w < 1 || h < 1 || d < 1 || (long)w*h*d > 20000)
+            if (w < 1 || h < 1 || d < 1 || (long)w*h*d > maxBlocks)
                 throw new IllegalArgumentException("Invalid cuboid dimensions");
             BlockState state = blueprintBlock(c.get("block").getAsString());
             for (int dx = 0; dx < w; dx++)
@@ -421,7 +430,7 @@ public final class BuildPlan {
         // allowing windows, doors, arches and air openings to carve solid volumes.
         // A repeated coordinate is not an invalid blueprint by itself.
         cells.put(pos, state);
-        if (cells.size() > 20000)
-            throw new IllegalArgumentException("Blueprint exceeds 20000 blocks");
+        if (cells.size() > 2_000_000)
+            throw new IllegalArgumentException("Blueprint exceeds 2000000 blocks");
     }
 }
