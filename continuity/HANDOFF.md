@@ -1,3 +1,11 @@
+# Correzione selettore schematic — 30 ottobre 2026
+
+Utente: Carica schematic non apre alcun selettore sul suo PC. Sostituito AWT FileDialog con browser file nativo della GUI Minecraft: cartella personale, Downloads, dischi/unita, cartella superiore, cartelle e soli .schem/.schematic, paginazione, selezione e pulsante Apri. Nessuna digitazione percorso richiesta. Lettura directory asincrona; errori cartelle non accessibili visibili; cancel non avvia import. Il vecchio campo percorso e stato choosing sono stati rimossi. Trascinamento file resta disponibile.
+
+Codice `e5f5ddfde61114e2788ced698633a9aa2fa708af`, run `41054486841`: compilazione e verifyFileBrowser riusciti (directory con spazi, filtro estensioni case-insensitive, ordine cartelle/file, cartella inesistente e elenco dischi); test rotazioni esistente riuscito. JAR aggiornato e checksum verificato: `5b6fb3eed16bcfffff086f5871a6ca67ad9269c99d44ce2caac904d99136f108  MATRIX-Architect-v0.1.0-Minecraft-1.20.1-Fabric.jar`. Il test UI sul PC utente resta necessario. Il nome JAR rimane invariato: sostituire il vecchio e riavviare Minecraft, K → Carica schematic → cartelle → seleziona file → Apri schematic selezionato.
+
+---
+
 # MATRIX Architect — addon WorldEdit con bacchetta, 30 ottobre 2026
 
 Utente: creare una mod esterna che utilizza WorldEdit, senza modificarlo o rinominarlo; strumento apposito in mano, movimento libero durante posizionamento, ruota/sposta/conferma nel mondo, console ed errori. Mantenere JAR nella cartella downloads. Non confondere addon con Blueprint Builder (JSON) o Mine Builder (GPT).

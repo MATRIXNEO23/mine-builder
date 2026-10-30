@@ -4,7 +4,7 @@ Minecraft Java 1.20.1, Fabric, Java 17. Richiede Fabric API e **WorldEdit 7.2.15
 
 ## Installazione e uso senza comandi
 1. Mettere WorldEdit, Fabric API e `MATRIX-Architect-v0.1.0-Minecraft-1.20.1-Fabric.jar` nella cartella mods dell'istanza Prism. Riavviare dopo installazione.
-2. Entrare in un mondo singleplayer di prova con comandi abilitati. Premere **K** per aprire il pannello: Carica schematic apre il selettore file; in alternativa incollare percorso o trascinare un file. Il pannello include console e copia registro.
+2. Entrare in un mondo singleplayer di prova con comandi abilitati. Premere **K** per aprire il pannello: Carica schematic apre il browser file dentro Minecraft: cartella personale, Download, dischi/unita e cartella superiore. Aprire le cartelle, selezionare il .schem e premere Apri schematic selezionato. In alternativa trascinare un file. Non usa piu finestre AWT del sistema e non richiede di scrivere percorsi. Il pannello include console e copia registro.
 3. Prendere la **Bacchetta MATRIX Architect** dall'inventario creativo (Strumenti) oppure dal pulsante Prendi bacchetta in Creativa. Tenerla nella mano principale.
 4. Chiudere il pannello: camminare/volare normalmente e puntare un blocco entro 64 m. Una cornice verde mostra l'ingombro del file con la sua origine effettiva.
 5. Clic destro su un blocco blocca il punto. **R** ruota 90 gradi; **frecce** spostano X/Z di un blocco; **Page Up/Page Down** regolano l'altezza; **L** riprende il puntamento e azzera l'offset verticale.
