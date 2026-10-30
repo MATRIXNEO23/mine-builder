@@ -1,3 +1,13 @@
+# MATRIX Architect — altezza non bloccante, 30 ottobre 2026
+
+Richiesta utente applicata: eliminato il veto altezza sia in ArchitectClient sia in WorldEditBridge. La cornice rossa rimane; il server registra AVVISO con quote e prosegue tramite WorldEdit. I blocchi fuori altezza possono non essere piazzati; nessun ridimensionamento o cambio origine. Restano permessi, RAM, chunk caricati, confine e limiti file. Codice finale: 1c42ab0a9a8c12f0023e60ad335e2590bfb3a795. CI 41074111652: compilazione, test e roundtrip schematic grande nel runtime Fabric WorldEdit SUCCESS; pubblicazione downloads SUCCESS. Queste verifiche non provano posa in-world o San Siro sul PC utente.
+
+Checksum pubblicato: 41dd53d280aeb0b3e5fedf4541bb88d2a8a7870864a38bae44814339f357add6  MATRIX-Architect-v0.1.0-Minecraft-1.20.1-Fabric.jar
+
+Prossimo: sostituire vecchio JAR, riavviare, F10 carica file, F6 posa in mondo di prova. Verificare struttura completa e messaggi; non promettere che WorldEdit superi i limiti Minecraft.
+
+---
+
 # MATRIX Architect — rimozione limite schematic, 30 ottobre 2026
 
 Codice limite: 55e63dd9567213104301667248c855c5000f8639; revisione finale e harness runtime: fc5505a7dca275166d1e16a11a19dff9fd7e17a1. Rimosso il tetto arbitrario di2milioni posizioni dal lettore WorldEdit. Non si ridimensiona ne altera il contenuto del file: dimensioni e origine conservate. Console: dimensioni, volume inclusa aria, RAM Java disponibile. SchematicCapacity verifica volume positivo e riserva heap di max(128MiB,10% massimo heap) dopo lettura e prima della posa; NON e una stima del picco di memoria ne della cronologia. OutOfMemoryError del lettore convertito in errore leggibile senza avviare posa. Limite64MB compressi resta. Nuovi test: grandi volumi ammessi con memoria simulata, RAM insufficiente rifiutata, lettura/scrittura WorldEdit reale oltre2milioni con origine conservata.
