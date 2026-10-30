@@ -1,3 +1,6 @@
+## 2026-10-30 — Test utente: console invisibile, casa lenta e forma errata
+Commit 41eb35c: pulsante Console LIVE/Registro sempre visibile sopra Chiudi in entrambe le schede; logging immediato delle fasi e degli errori (non solo durante render), validazione quota blueprint appena generato. Commit 141a1f6: richieste brevi per casa/casetta/house saltano chiamata GPT brief e chiamata GPT master-plan, usando contratto geometrico deterministico 11x9 e un'unica chiamata GPT per geometria; prompt esplicita interni vuoti, tetto, porte, finestre. Non cambia richieste architettoniche grandi. Qualità della casa da validare con screenshot/JSON, nessuna garanzia estetica. Serve JAR nuovo, non altra mod. CI da verificare.
+
 ## 2026-10-30 — Errore altezza fotografato e protezione nuovi mondi
 Screenshot utente: Blocco fuori dai limiti -21,-73,-297, Y valida -64..319. Correzione 6285d0d: validazione preventiva di ogni posizione in BuildExecutor.start/resume e API validateHeight, prima di salvare/posare; lastErrorFor(client) nasconde errori di server/mondo precedente. Correzione 7fc208b: validazione preventiva anche prima di armare il martello e UI usa lastErrorFor. Non spostare automaticamente edifici o modificare progetti/salvataggi; richiedere quota adatta o rigenerazione. CI e test runtime da verificare.
 
