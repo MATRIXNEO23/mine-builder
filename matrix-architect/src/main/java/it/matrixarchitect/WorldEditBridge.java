@@ -47,7 +47,7 @@ final class WorldEditBridge {
    ArchitectClient.resetTarget();event("Pronto: "+filename+" | ingombro "+clip.getDimensions()+". Esci dal pannello e impugna la bacchetta.");
   }));
  }
- /** Checks the full clipboard including air before any edit session is created.
+ /** Reports height overflow without blocking the WorldEdit paste.
   * topExclusive follows Minecraft world.getTopY(). */
  static String placementHeightError(Clipboard clip,BlockPos anchor,int rotation,int bottomY,int topExclusive){
   var b=ArchitectClient.bounds(clip,anchor,rotation);
@@ -57,7 +57,7 @@ final class WorldEditBridge {
   return "Fuori altezza: struttura Y "+(int)b.minY+".."+((int)b.maxY-1)+
    "; mondo Y "+bottomY+".."+(topExclusive-1)+
    "; imposta il punto di posa a Y "+(bottomY-relativeMin)+".."+(topExclusive-1-relativeMax)+
-   ". Nessun blocco modificato da questo tentativo.";
+   ". La posa prosegue con WorldEdit: i blocchi fuori altezza potrebbero non essere piazzati.";
  }
  static void paste(MinecraftClient c,BlockPos target){
   if(!ready(c)||target==null)return;
@@ -74,7 +74,7 @@ final class WorldEditBridge {
     SchematicCapacity.validate((long)clip.getDimensions().getBlockX()*clip.getDimensions().getBlockY()*clip.getDimensions().getBlockZ(),Runtime.getRuntime().maxMemory(),Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory());
     var world=server.getWorld(dim);var bounds=ArchitectClient.bounds(clip,anchor,rotation);
     String heightError=placementHeightError(clip,anchor,rotation,world.getBottomY(),world.getTopY());
-    if(heightError!=null)throw new IllegalArgumentException(heightError);
+    if(heightError!=null)event("AVVISO: "+heightError);
     // Avoid a half-paste caused by missing chunks: no world mutations until all are loaded.
     for(int x=(int)Math.floor(bounds.minX/16);x<=Math.floor((bounds.maxX-1)/16);x++)
      for(int z=(int)Math.floor(bounds.minZ/16);z<=Math.floor((bounds.maxZ-1)/16);z++){
