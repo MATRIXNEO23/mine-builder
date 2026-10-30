@@ -32,3 +32,13 @@
 - Resta: verificare regressioni, crash/recovery, protezione costruzioni artificiali, velocità su i3, progetto paese oltre 2 milioni di blocchi.
 - Prossimo passo: test su copia del mondo, audit per eventuale merge, generazione realmente disk-based per città intere.
 
+
+## CP-2026-10-30-004 — 30 ottobre 2026 — anteprima JAR generazione a componenti
+
+- Main prima degli esperimenti: `7e7e5a3`; main non modificato in questa milestone.
+- Sviluppo isolato: PR #1 `feature/composite-large-builds-20261030`.
+- CI build completa sul commit `c2b859b8`: run **40995555653 SUCCESS**, compresi test mock, compile Fabric, test DesignContract e ComponentManifest e pubblicazione preview.
+- Release testabile verificata: `https://github.com/MATRIXNEO23/mine-builder/releases/tag/mine-builder-composite-preview`, JAR e checksum. Nessun JAR principale sostituito.
+- Correzioni: recupero dei diari singoli e multipli, file blueprint GZIP in streaming con lettura storica, validazione degli header GPT, gestione JSON malformato, nessun taglio silenzioso oltre limite, sistema a componenti.
+- Non classificare come `testato nel mondo`: serve prima l'esecuzione Minecraft e prova di sicurezza/restart su mondo nuovo.
+- Prossimo: test gioco su un mondo dedicato, correggere crash/lag/preflight, valutare merge solo con decisione distinta.

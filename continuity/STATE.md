@@ -1,3 +1,17 @@
+## Milestone: build testabile grandi edifici — 30 ottobre 2026
+
+**Anteprima isolata pubblicata:** [mine-builder-composite-preview](https://github.com/MATRIXNEO23/mine-builder/releases/tag/mine-builder-composite-preview), JAR Minecraft 1.20.1 Fabric Java 17 e SHA256SUMS, CI 40995555653 SUCCESS sul commit c2b859b8. Ramo `feature/composite-large-builds-20261030`, PR #1, **NON integrato in main**. La release preview non deve essere confusa con `mine-builder-latest`.
+
+Risolte nel ramo: limite esplicito coordinate ±128 incoerente con ±2000; manifest dei componenti immutabile e validazione conflitti prima del journal; recupero sia `complete-geometry.json` sia `component-manifest.json`; ordinamento journal non basato su UUID; passaggio diretto del blueprint alla GUI; salvataggio blueprint GZIP in streaming e lettura retrocompatibile dei vecchi `.json`; retry sul contratto architettonico non valido e JSON malformato; workflow di preview che pubblica solo dopo test/compilazione.
+
+**Evidenze:** CI 40995422772 SUCCESS (salvataggi compressi compilati), 40995488862 SUCCESS (contratto GPT e retry), 40995555653 SUCCESS (build e release preview). Test nel mondo Minecraft NON eseguiti qui. La build è **scaricabile per collaudo** e non certificata come sicura su mondi importanti.
+
+**Limitazioni non risolte:** limite 2 milioni di blocchi totali, max 64 componenti, verità/fedeltà delle fonti, backup/rollback del mondo, distinzione totale fra blocchi naturali e piazzati, preflight progressivo su chunk lontani, salvataggi chunk che possono causare lag, quota inclusa GPT non verificata, verifica runtime su i3. Test SOLO su nuova istanza Prism e mondo nuovo.
+
+**Prossimo passo:** collaudo manuale (casa, stadio in componenti, piccolo quartiere, arresto/riavvio, area occupata, profilo prestazionale). Conservare screenshot ed errori e correggere eventuali regressioni prima di valutare merge.
+
+---
+
 ## Aggiornamento review grandi progetti — 30 ottobre 2026 (ramo di prova)
 
 Fonte reale: main 7e7e5a3; il workflow grigio 40992403280 è CANCELLED (non un errore di compilazione), e il successivo 40992419917 è SUCCESS. Ultimi commit main ampliano coordinate grandi ma lasciano il limite esplicito a ±128 e singolo JSON geometrico.

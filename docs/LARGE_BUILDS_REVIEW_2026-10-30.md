@@ -1,3 +1,13 @@
+## Release separata verificata — 30 ottobre 2026
+
+- [Release preview](https://github.com/MATRIXNEO23/mine-builder/releases/tag/mine-builder-composite-preview) prodotta dal run GitHub Actions 40995555653 (SUCCESS, SHA c2b859b8).
+- JAR `Mine-Builder-v0.1.0-Minecraft-1.20.1-Fabric.jar` e SHA256SUMS.txt pubblicati senza modificare la release `mine-builder-latest` di main.
+- Il percorso a componente e la lettura dei blueprint compressi ora **compilano**; nessun test di costruzione/recupero Minecraft reale eseguito.
+- Corretto il recovery dei precedenti diari `complete-geometry.json`, precedentemente ignorati; parser dei due header GPT con retry, parser geometria con retry sui JSON malformati.
+- Caveat: questa release è esclusivamente testabile, non sicura per mondi importanti, e non elimina limiti di blocchi e memoria.
+
+---
+
 # Mine Builder — Review grandi edifici / paesi (30 ottobre 2026)
 
 ## Fonte e stato
