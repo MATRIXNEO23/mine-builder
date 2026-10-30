@@ -504,9 +504,9 @@ public final class BancoIaScreen extends Screen {
                 throw new java.util.concurrent.CompletionException(ex);
             }
         }).whenComplete((plan, error) -> {
-            generatorRunning = false;
-            journalRecoveryRunning = false;
             if (client != null) client.execute(() -> {
+                generatorRunning = false;
+                journalRecoveryRunning = false;
                 if (error != null) {
                     Throwable failure = error.getCause() == null ? error : error.getCause();
                     status = Text.literal("Recupero componenti: " + failure.getMessage());
