@@ -53,3 +53,19 @@
 - **NESSUN test in Minecraft reale documentato** per la preview. Inferenza GPT con quota inclusa non validata. Limite aggregato 2 milioni, performance, backup/rollback, protezione blocchi artificiali, giunzioni architettoniche e fedeltà 1:1 ancora non risolti.
 - Per la ripresa: prima leggere `continuity/HANDOFF.md` e `continuity/STATE.md` **sul ramo attivo**, verificare di nuovo l'HEAD e CI; poi test della preview **solo su mondo nuovo** e registrare risultati. Non eseguire merge né sovrascrivere mondi precedenti. Nessun costo aggiuntivo.
 - Questa operazione salva **solo documentazione di continuità**, senza toccare codice, JAR o mondi. SHA della presente operazione da verificare nella cronologia GitHub, non inventare un identificatore nel checkpoint.
+
+
+## CP-2026-10-30-006 — villa JSON / console fissa
+
+# Aggiornamento 30 ottobre 2026 — correzione villa e console affiancata
+
+Codice verificato: `0296872512e7e52af46d936f14c0680844c0e276`. CI `41031620396` SUCCESS: build Fabric, BlueprintFieldsTest (campi mancanti/null, frazioni, overflow, tipi errati), manifest, contratto e mock OAuth. JAR pubblicato da questa run: 138670 byte, SHA256 `7081e40bc3e102ceffb6a822915e2780ebffcf24e47f9014410b83addced4784`, release `mine-builder-composite-preview`; il tag storico resta su un commit precedente, gli asset sono aggiornati dalla CI.
+
+Test utente: villa a due piani con piscina fallita dopo circa 5m39s con getAsInt su campo mancante. La foto non identifica il campo né prova il commit installato. Corretto il contratto geometrico esplicito condiviso SINGLE/COMPONENTS; lettura numeri interi e stringhe con errori leggibili; retry SINGLE con risposta precedente ed errore specifico; tentativi salvati nel diario prima del parsing. Console sempre a sinistra, comandi a destra, ricerca come testo informativo, errori a capo corretti e prompt conservato tornando dai dettagli. Nessun test runtime Minecraft della nuova UI o della villa ancora eseguito; nessuna riduzione dei tempi dimostrata, nessuna fedeltà architettonica certificata.
+
+Richiesta utente: flusso semplice richiesta → modello analizza/progetta/produce blueprint → Minecraft esegue; console sempre visibile. L'utente contesta la scelta del ramo separato (non era sua richiesta). Non creare ulteriori rami né attribuirgli quella scelta. Il ramo preesistente è ancora il riferimento del JAR corretto; main non integrato in questa correzione.
+
+Prossimo: sostituire il vecchio JAR con quello nuovo e provare villa in mondo di test; verificare layout, generazione, martello, piscina, scale e ripresa. Limiti sicurezza/performance/backup precedenti restano. Non dichiarare risolti tutti i problemi del motore.
+
+---
+
