@@ -19,7 +19,13 @@ public final class GeometryGenerator {
             + "for fine details and air openings. Keep shared axes and materials. "
             + "Do not split into pages or redesign components. Output ONLY JSON arrays "
             + "cuboids, shapes, blocks. Local game partitions into sections. "
-            + "Stay within x,z -128..128 and y -32..128. Avoid thousands of individual records.";
+            + "Stay within x,z -128..128 and y -32..128. Avoid thousands of individual records. "
+            + "Use valid Minecraft 1.20.1 block IDs and block state properties. "
+            + "For multistorey buildings include accessible internal stairs and walkable openings; "
+            + "for pools include basin and water; for trees include trunk and leaves. "
+            + "Use air blocks for entrances and passageways; explicit detail blocks override primitives. "
+            + "Include all requested architectural features and avoid generic box-shaped substitutes. "
+            + "Use no more than 2,000,000 expanded block positions; never silently omit requested sections.";
         String geometry = "";
         BuildPlan blueprint = null;
         Exception lastFailure = null;
