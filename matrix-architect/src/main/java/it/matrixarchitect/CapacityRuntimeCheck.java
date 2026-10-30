@@ -5,6 +5,7 @@ import com.sk89q.worldedit.regions.CuboidRegion;
 import com.sk89q.worldedit.math.BlockVector3;
 import java.nio.file.Files;
 final class CapacityRuntimeCheck {
+ static boolean started;
  static void run(){
  try{
  long gib=1024L*1024*1024;
@@ -22,7 +23,7 @@ final class CapacityRuntimeCheck {
   }finally{Files.deleteIfExists(file);}
 
  System.out.println("FABRIC_WORLDEDIT_LARGE_SCHEMATIC_PASS");
- System.exit(0);
- }catch(Throwable failure){failure.printStackTrace();System.exit(1);}
+ Runtime.getRuntime().halt(0);
+ }catch(Throwable failure){failure.printStackTrace();Runtime.getRuntime().halt(1);}
  }
 }
