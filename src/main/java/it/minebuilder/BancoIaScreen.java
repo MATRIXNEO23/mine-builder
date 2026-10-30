@@ -35,6 +35,11 @@ public final class BancoIaScreen extends Screen {
     private static volatile int generatorPages = 0;
     private static volatile int generatorBlocks = 0;
     private static volatile boolean generatorRunning = false;
+    private static final java.util.concurrent.ExecutorService consoleWriter = java.util.concurrent.Executors.newSingleThreadExecutor(task -> {
+        Thread thread = new Thread(task, "minebuilder-console-log");
+        thread.setDaemon(true);
+        return thread;
+    });
     private static final java.util.List<String> consoleEvents = new java.util.concurrent.CopyOnWriteArrayList<>();
     private static volatile String consoleLastStage = "";
     private static volatile long consoleStageStarted = System.currentTimeMillis();
@@ -42,7 +47,7 @@ public final class BancoIaScreen extends Screen {
         String line = java.time.LocalTime.now().withNano(0) + " | " + message;
         consoleEvents.add(line);
         while (consoleEvents.size() > 200) consoleEvents.remove(0);
-        java.util.concurrent.CompletableFuture.runAsync(() -> {
+        consoleWriter.execute(() -> {
             try {
                 Path folder = net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("minebuilder");
                 java.nio.file.Files.createDirectories(folder);
