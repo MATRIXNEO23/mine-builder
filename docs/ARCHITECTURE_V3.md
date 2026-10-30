@@ -19,8 +19,13 @@ Il progetto globale determina tipologia, geometria, assi, livelli, materiali, ci
 - Rimosso vecchio generatore paginato irraggiungibile dalla generazione nuova.
 - Conversione ed esecuzione condividono il confine tecnico BlueprintContract.
 
+## Seconda fase implementata
+- `ArchitecturalPlanner`: ricerca e pianificazione GPT indipendenti dalla schermata.
+- `GeometryGenerator`: geometria canonica e validazione tecnica fuori dalla schermata.
+- Test `DesignContractTest` introdotto e collegato alla CI; esito ancora da verificare.
+
 ## NON ancora completato
-- Motore di generazione estratto interamente da BancoIaScreen; ora la GUI conserva l'orchestrazione.
+- Orchestrazione completa e journal ancora nella GUI: progettazione e generazione geometrica sono ora estratte in `ArchitecturalPlanner` e `GeometryGenerator`.
 - Ricerca web generale multi-fonte: oggi la scoperta automatica usa soltanto Wikimedia Commons, che non garantisce immagini o planimetrie pertinenti.
 - Blueprint di grandi città/stadi con geometria incrementale affidabile: il singolo JSON può eccedere il limite output GPT.
 - World identity forte per tutti i journal, preflight e salvataggi completamente non bloccanti, backup e anteprima esaustiva.
