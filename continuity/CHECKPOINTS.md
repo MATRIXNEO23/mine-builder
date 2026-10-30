@@ -69,3 +69,15 @@ Prossimo: sostituire il vecchio JAR con quello nuovo e provare villa in mondo di
 
 ---
 
+
+
+## CP-2026-10-30-007 — review e abilitazione azioni
+
+# Review e pulsanti contestuali — 30 ottobre 2026
+
+Codice `021d087e38dcf7397cf21cde2d763e4ba3c41f5c`, CI `41034204139` SUCCESS. Aggiunti controlli UI e handler Costruisci, validazione prima di esporre piani da generazione/libreria/diari, occupazione durante chat e recuperi storici, consegna esiti sul client thread. ActionGateTest e BlueprintFieldsTest superati insieme a build/manifest/contratto e mock OAuth. JAR aggiornato dalla CI nella release esistente. Review completa con priorità, fix e casi di collaudo: `docs/REVIEW_RUNTIME_2026-10-30.md`. Nessun test Minecraft della nuova revisione.
+
+Rischi aperti: backup e protezione mondo; controllo piscine su confini di sezioni; ordine di posa e proprietà di scale/slab/porte; performance e identità mondo. Disponibilità recuperi basata sui file presenti, integrità accertata durante recupero. Prossimo: verificare pulsanti durante generazione/errore/recupero/completamento e poi posa reale villa su mondo di test. Non confondere validazione tecnica con completezza architettonica.
+
+---
+
