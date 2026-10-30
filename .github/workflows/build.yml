@@ -4,6 +4,9 @@ on:
     branches: [main]
     paths-ignore:
       - 'downloads/**'
+      - 'blueprint-builder/**'
+      - '.github/workflows/blueprint-builder.yml'
+      - '.github/workflows/build.yml'
   workflow_dispatch:
 concurrency:
   group: mine-builder-publish-main

@@ -1,0 +1,12 @@
+{
+ "format_version":1,
+ "minecraft_version":"1.20.1",
+ "cuboids":[{"x":0,"y":0,"z":0,"w":5,"h":1,"d":5,"block":"minecraft:stone_bricks"}],
+ "shapes":[],
+ "blocks":[
+  {"x":1,"y":1,"z":1,"block":"minecraft:quartz_slab[type=bottom,waterlogged=false]"},
+  {"x":2,"y":1,"z":1,"block":"minecraft:quartz_slab[type=top,waterlogged=false]"},
+  {"x":3,"y":1,"z":1,"block":"minecraft:quartz_stairs[facing=east,half=bottom,shape=straight,waterlogged=false]"},
+  {"x":2,"y":1,"z":3,"block":"minecraft:hopper[facing=down,enabled=true]"}
+ ]
+}

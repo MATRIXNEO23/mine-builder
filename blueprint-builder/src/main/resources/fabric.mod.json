@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "blueprintbuilder",
+  "version": "0.1.0",
+  "name": "Blueprint Builder",
+  "description": "Importa blueprint e costruisci nel mondo locale. Nessun GPT richiesto.",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "it.blueprintbuilder.BlueprintBuilder"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "minecraft": "~1.20.1",
+    "java": ">=17",
+    "fabric-api": "*"
+  }
+}
