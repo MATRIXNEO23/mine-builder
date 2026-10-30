@@ -293,8 +293,17 @@ public final class BancoIaScreen extends Screen {
             if (!java.nio.file.Files.isDirectory(root)) throw new java.io.IOException("Nessun diario");
             java.util.List<Path> jobs;
             try (var stream = java.nio.file.Files.list(root)) {
+                // UUID names have no chronological order: resume the latest touched job.
                 jobs = stream.filter(java.nio.file.Files::isDirectory)
-                    .sorted(java.util.Comparator.reverseOrder()).toList();
+                    .sorted((first, second) -> {
+                        try {
+                            return java.nio.file.Files.getLastModifiedTime(second)
+                                .compareTo(java.nio.file.Files.getLastModifiedTime(first));
+                        } catch (java.io.IOException ex) {
+                            return second.getFileName().toString()
+                                .compareTo(first.getFileName().toString());
+                        }
+                    }).toList();
             }
             for (Path job : jobs) {
                 Path originFile = job.resolve("origin.txt");
