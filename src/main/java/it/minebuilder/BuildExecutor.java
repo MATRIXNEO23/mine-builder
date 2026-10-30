@@ -390,5 +390,13 @@ public final class BuildExecutor {
     public static int remaining() { return pending.size() + remainingSections.stream()
         .mapToInt(section -> section.placements().size()).sum(); }
     public static String sectionProgress() { return completedSections + "/" + totalSections; }
-    public static void cancel() { pending.clear(); remainingSections.clear(); currentSection = List.of(); ownerServer = null; preflightDone = false; }
+    public static void cancel() {
+        pending.clear();
+        remainingSections.clear();
+        currentSection = List.of();
+        // Retain the server identity until the next start so lastErrorFor can
+        // report WHY a protected block or failed checkpoint stopped the build.
+        // This does not make a cancelled build resumable without its saved journal.
+        preflightDone = false;
+    }
 }
