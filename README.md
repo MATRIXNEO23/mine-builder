@@ -24,7 +24,7 @@ Un **Banco IA** posizionabile nel mondo Minecraft. Con clic destro apre una sche
 
 **Creazione originale:** per richieste come «Inventami un castello gotico», GPT definisce liberamente concept, pianta, volumi e stile, anche senza un edificio reale da copiare. Esempi: torri, guglie, archi a sesto acuto, contrafforti, vetrate, ponti e cortili. Il progetto strutturato viene verificato per collisioni, stabilità geometrica e limiti del mondo; gli algoritmi deterministici convertono poi le forme in blocchi di Minecraft. Per edifici inventati, 1 blocco ≈ 1 metro resta la convenzione dimensionale, ma misure e dimensioni sono decise dall'utente o proposte dall'agente, non vincolate a un originale reale.
 
-In entrambe le modalità l'esecutore costruisce automaticamente a sezioni, con salvataggio locale, possibilità di pausa, modifica conversazionale e ripresa dopo interruzioni. Sono requisiti **da implementare e testare**, non funzionalità già operative.
+L'esecutore a sezioni, il checkpoint locale e il recupero sono presenti nel codice, ma non ancora validati su tutti i casi di crash e interruzione. Le modifiche conversazionali di un progetto in corso restano limitate; il completamento architettonico non è certificato.
 
 ## Architettura proposta
 1. **Blocco Banco IA + GUI Fabric:** campo per prompt, storico della conversazione, progetti, stato, pausa, riprendi, annulla.
@@ -40,10 +40,12 @@ In entrambe le modalità l'esecutore costruisce automaticamente a sezioni, con s
 - **MVP 3 – fedeltà:** generare una piccola struttura reale documentata, confrontarla con misure e riferimenti, apportare correzioni.
 - **Obiettivi successivi:** San Siro e San Vendemiano, in scala 1:1, con riferimenti leciti (es. OpenStreetMap e fotografie riutilizzabili).
 
-## Verifiche ancora necessarie
-Il collegamento Minecraft–GPT non è ancora implementato né collaudato sul PC dell'utente. Il primo test deve verificare il consenso al piano ChatGPT e la ricezione di un evento response.completed dalla Responses API per un modello dell'account; store=false e stream=true sono obbligatori. Il login da solo non dimostra l'accesso all'inferenza, né garantisce web search. Il test tecnico predisposto in [scripts/verify-plan-sharing.mjs](scripts/verify-plan-sharing.mjs) richiede un client locale già autenticato tramite OAuth; il bridge non è ancora implementato e il codice non è stato eseguito. Nessun token o credenziale deve essere copiato in GitHub o nella chat.
+## Stato tecnico e verifiche ancora necessarie
+Il codice del collegamento Minecraft–GPT è presente nel JAR (OAuth PKCE e inferenza in streaming), ma l'inferenza reale con quota inclusa e il funzionamento sul PC dell'utente non sono stati certificati in questa review. Il primo test deve verificare il consenso al piano ChatGPT e la ricezione di un evento response.completed dalla Responses API per un modello dell'account; store=false e stream=true sono obbligatori. Il login da solo non dimostra l'accesso all'inferenza, né garantisce web search. Il test tecnico predisposto in [scripts/verify-plan-sharing.mjs](scripts/verify-plan-sharing.mjs) richiede un client locale già autenticato tramite OAuth; il test Node indipendente richiede ancora un client JavaScript già autenticato, mentre la mod ha un proprio percorso OAuth Java; l'autenticazione e l'inferenza end-to-end non sono state verificate da questa review. Nessun token o credenziale deve essere copiato in GitHub o nella chat.
 
 Per il Banco IA, il motore scelto è GPT. Codex rimane soltanto un'eventuale opzione futura.
+
+**Sviluppo isolato del 30 ottobre 2026:** la generazione di grandi edifici per componenti è nella PR #1, non ancora in main né nella Release principale. Il manifest geometrico mantiene lo stesso piano architettonico e salva i componenti in un diario recuperabile. CI verde non sostituisce il test in Minecraft. Leggi [la review dei grandi progetti](docs/LARGE_BUILDS_REVIEW_2026-10-30.md).
 
 Documentazione:
 - https://developers.openai.com/siwc/quickstart
