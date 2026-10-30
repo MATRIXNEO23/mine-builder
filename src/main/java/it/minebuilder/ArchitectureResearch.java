@@ -55,6 +55,34 @@ public final class ArchitectureResearch {
         return null;
     }
 
+    /** Free Wikipedia summary leads for factual context; no measurements are treated as verified. */
+    public static String encyclopedicReferences(String request) throws Exception {
+        if (request == null || request.isBlank()) return "No encyclopedia query.";
+        String clean = request.replaceAll("[\\r\\n\\t]", " ").trim();
+        if (clean.length() > 100) clean = clean.substring(0, 100);
+        String url = "https://en.wikipedia.org/w/api.php?action=query&generator=search"
+            + "&gsrsearch=" + URLEncoder.encode(clean + " architecture", StandardCharsets.UTF_8)
+            + "&gsrlimit=3&prop=extracts&exintro=1&explaintext=1&exchars=900&format=json";
+        HttpRequest req = HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(12))
+            .header("User-Agent", "MineBuilder/0.3 (public architectural reference research)").GET().build();
+        HttpResponse<String> response = HTTP.send(req, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200 || response.body().length() > 1024 * 1024)
+            throw new IOException("Wikipedia lookup unavailable");
+        JsonObject root = JsonParser.parseString(response.body()).getAsJsonObject();
+        if (!root.has("query") || !root.getAsJsonObject("query").has("pages"))
+            return "No encyclopedia references found.";
+        StringBuilder out = new StringBuilder("Wikipedia article leads (not independently verified measurements):\\n");
+        for (JsonElement item : root.getAsJsonObject("query").getAsJsonObject("pages").asMap().values()) {
+            JsonObject page = item.getAsJsonObject();
+            if (!page.has("title")) continue;
+            String title = page.get("title").getAsString();
+            out.append(title).append(": ");
+            if (page.has("extract")) out.append(page.get("extract").getAsString().replaceAll("[\\r\\n]", " "));
+            out.append("\\n");
+        }
+        return out.toString();
+    }
+
     /** Reference discovery for the planning stage. Metadata only: never claim visual analysis. */
     public static String planningReferences(String request) throws Exception {
         if (request == null || request.isBlank()) return "No reference query.";
