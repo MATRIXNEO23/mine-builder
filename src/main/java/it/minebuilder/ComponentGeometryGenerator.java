@@ -94,6 +94,7 @@ public final class ComponentGeometryGenerator {
             if (Files.isRegularFile(file)) {
                 json = Files.readString(file);
                 part = validatePart(json, component, origin);
+                checkAgainstPrevious(cells, part, component);
                 progress.accept("Componente salvato recuperato " + (i + 1) + "/" + count);
             } else {
                 if (!allowGeneration || token == null || model == null || design == null)
@@ -124,6 +125,8 @@ public final class ComponentGeometryGenerator {
                     try {
                         String candidate = clean(answer);
                         BuildPlan parsed = validatePart(candidate, component, origin);
+                        // Reject cross-component overlaps and excess blocks BEFORE journaling.
+                        checkAgainstPrevious(cells, parsed, component);
                         json = candidate;
                         part = parsed;
                         break;
@@ -152,6 +155,20 @@ public final class ComponentGeometryGenerator {
             .map(e -> new BuildPlan.Placement(e.getKey(), e.getValue())).toList());
         BlueprintContract.validateAndPartition(complete);
         return complete;
+    }
+
+    private static void checkAgainstPrevious(Map<BlockPos, BlockState> cells,
+            BuildPlan part, ComponentManifest.Component component) {
+        long added = 0;
+        for (var entry : part.placements()) {
+            BlockState earlier = cells.get(entry.pos());
+            if (earlier != null && !earlier.equals(entry.state()))
+                throw new IllegalArgumentException("Conflitto tra componenti in "
+                    + entry.pos().toShortString() + " (" + component.id() + ")");
+            if (earlier == null) added++;
+        }
+        if (cells.size() + added > TOTAL_LIMIT)
+            throw new IllegalArgumentException("Progetto oltre 2 milioni di blocchi");
     }
 
     private static BuildPlan validatePart(String json, ComponentManifest.Component component,
