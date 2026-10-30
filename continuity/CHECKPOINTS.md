@@ -107,3 +107,15 @@ Prossimo test utente: sostituire JAR, riavviare, F10 carica stesso San Siro e co
 Verifiche: CI41063672780, compilazione e test memoria/browser/tasti/rotazione passati; runtime Minecraft1.20.1 Fabric WorldEdit7.2.15 passato (marker FABRIC_WORLDEDIT_LARGE_SCHEMATIC_PASS): clipboard201x51x201=2.060.451 posizioni aria, writer/reader Sponge con dimensioni e origine(9,3,7) conservate. NON prova materiali o posa. JAR e checksum pubblicati in downloads; SHA256 d2839d2200a3c0dbb3f8ce69c01ffb785d06b26581279686804a2827f291bcb3  MATRIX-Architect-v0.1.0-Minecraft-1.20.1-Fabric.jar. Gli harness precedenti fallivano per piattaforma non inizializzata e registri troppo precoci: corretti avviando il controllo al primo END_SERVER_TICK; processo test isolato termina con halt solo se property matrixarchitect.capacity-test e attiva. Timeout CI15min e runtime180s; build obsolete cancellate automaticamente. Nessun JAR fallito pubblicato.
 
 ---
+
+
+## CP-2026-10-30-013 — altezza convertita in avviso
+
+# MATRIX Architect — altezza non bloccante, 30 ottobre 2026
+
+Richiesta utente applicata: eliminato il veto altezza sia in ArchitectClient sia in WorldEditBridge. La cornice rossa rimane; il server registra AVVISO con quote e prosegue tramite WorldEdit. I blocchi fuori altezza possono non essere piazzati; nessun ridimensionamento o cambio origine. Restano permessi, RAM, chunk caricati, confine e limiti file. Codice finale: 1c42ab0a9a8c12f0023e60ad335e2590bfb3a795. CI 41074111652: compilazione, test e roundtrip schematic grande nel runtime Fabric WorldEdit SUCCESS; pubblicazione downloads SUCCESS. Queste verifiche non provano posa in-world o San Siro sul PC utente.
+
+Checksum pubblicato: 41dd53d280aeb0b3e5fedf4541bb88d2a8a7870864a38bae44814339f357add6  MATRIX-Architect-v0.1.0-Minecraft-1.20.1-Fabric.jar
+
+Prossimo: sostituire vecchio JAR, riavviare, F10 carica file, F6 posa in mondo di prova. Verificare struttura completa e messaggi; non promettere che WorldEdit superi i limiti Minecraft.
+
