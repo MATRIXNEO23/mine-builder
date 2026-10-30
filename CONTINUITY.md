@@ -1,3 +1,6 @@
+## 2026-10-30 — Follow-up review: logging console
+Commits a945032 e 5fcf2cf: logging console su executor dedicato seriale daemon (ordine preservato; nessuna scrittura disco sincrona nel render), errori di validazione blueprint visibili anche nel registro, evento progetto pronto. Resta NON risolto: tempi GPT, geometrie di qualità, limiti risposta JSON, preflight/salvataggi che possono causare lag; test in gioco ancora necessari. CI nuova da verificare.
+
 ## 2026-10-30 — Review regressioni e ripristino GPT-led
 Su richiesta review: confermato che fast-path casa a dimensione fissa e gate validateSimpleHouse non rispettano intento utente. Rimossi in commit e84a3dc; tutte le tipologie tornano a brief architettonico + master plan globale GPT + geometria completa, con soli controlli tecnici. Review statica evidenzia ancora rischi: tre chiamate GPT sequenziali e possibile lentezza; blueprint singolo può superare limiti output; assenza di test automatici di architettura e UI; console eventi solo durante schermata aperta e log su file sincrono; preflight per sezione e save(true) possono bloccare tick; progressi su mondi e origine da verificare. Non dichiarare questi problemi risolti senza fix e test dedicati. Ultima build CI in corso. Non cancellare salvataggi o integrare modifiche sperimentali senza verifica.
 
